@@ -86,6 +86,157 @@ export function createMockServer() {
       return;
     }
 
+    const detailMatch = url.pathname.match(
+      /^\/v1\/catalog\/products\/([^/]+)\/([^/]+)$/,
+    );
+    if (detailMatch) {
+      const companySlug = decodeURIComponent(detailMatch[1]);
+      const productSlug = decodeURIComponent(detailMatch[2]);
+
+      if (productSlug === "trigger-error") {
+        res.writeHead(500);
+        res.end(
+          JSON.stringify({
+            error: {
+              code: "internal_error",
+              message: "Simulated internal server error",
+              request_id: "mock-err-500",
+            },
+          }),
+        );
+        return;
+      }
+
+      if (companySlug === "ergoseat" && productSlug === "ergo-task-chair") {
+        res.writeHead(200);
+        res.end(
+          JSON.stringify({
+            id: "prod-2",
+            slug: "ergo-task-chair",
+            name: "Ergo Task Chair",
+            description: "High-performance mesh chair with lumbar support.",
+            category: { slug: "chairs", name: "Chairs" },
+            company: { slug: "ergoseat", name: "ErgoSeat" },
+            price: { amount_minor: 850000, currency: "ETB" },
+            dimensions: { width_mm: 650, depth_mm: 600, height_mm: 1100 },
+            weight_g: 14500,
+            primary_image_url: "/v1/media/img-chair",
+            images: [
+              {
+                id: "img-chair-1",
+                url: "/v1/media/img-chair",
+                alt_text: "Ergo Task Chair Front",
+                position: 1,
+                is_primary: true,
+              },
+              {
+                id: "img-chair-2",
+                url: "/v1/media/img-chair-side",
+                alt_text: "Ergo Task Chair Side Profile",
+                position: 2,
+                is_primary: false,
+              },
+            ],
+            model: {
+              id: "mod-chair",
+              url: "/v1/media/chair.glb",
+              size_bytes: 2048,
+              materials: ["mesh", "plastic"],
+              variants: ["grey", "blue"],
+            },
+            options: [
+              {
+                id: "opt-color",
+                name: "Colour",
+                position: 1,
+                values: [
+                  {
+                    id: "val-grey",
+                    name: "Grey",
+                    position: 1,
+                    swatch_hex: "#808080",
+                  },
+                  {
+                    id: "val-blue",
+                    name: "Blue",
+                    position: 2,
+                    swatch_hex: "#0000ff",
+                  },
+                  {
+                    id: "val-terracotta",
+                    name: "Terracotta",
+                    position: 3,
+                    swatch_hex: "#d97706",
+                  },
+                ],
+              },
+            ],
+            variants: [
+              {
+                id: "var-grey",
+                sku: "ERGO-GREY",
+                price: { amount_minor: 850000, currency: "ETB" },
+                available: true,
+                position: 1,
+                options: { Colour: "Grey" },
+                value_ids: ["val-grey"],
+              },
+              {
+                id: "var-blue",
+                sku: "ERGO-BLUE",
+                price: { amount_minor: 920000, currency: "ETB" },
+                available: true,
+                position: 2,
+                options: { Colour: "Blue" },
+                value_ids: ["val-blue"],
+              },
+              {
+                id: "var-terracotta",
+                sku: "ERGO-TERRACOTTA",
+                price: { amount_minor: 980000, currency: "ETB" },
+                available: false,
+                position: 3,
+                options: { Colour: "Terracotta" },
+                value_ids: ["val-terracotta"],
+              },
+            ],
+          }),
+        );
+        return;
+      }
+
+      if (companySlug === "woodcraft" && productSlug === "zenith-dining-table") {
+        res.writeHead(200);
+        res.end(
+          JSON.stringify({
+            id: "prod-3",
+            slug: "zenith-dining-table",
+            name: "Zenith Dining Table",
+            description: "Solid oak dining table seating eight people.",
+            category: { slug: "tables", name: "Tables" },
+            company: { slug: "woodcraft", name: "WoodCraft" },
+            price: { amount_minor: 2200000, currency: "ETB" },
+            dimensions: { width_mm: 2000, depth_mm: 900, height_mm: 760 },
+            weight_g: 45000,
+            primary_image_url: null,
+            images: [],
+            model: null,
+            options: [],
+            variants: [],
+          }),
+        );
+        return;
+      }
+
+      res.writeHead(404);
+      res.end(
+        JSON.stringify({
+          error: { code: "not_found", message: "Product not found" },
+        }),
+      );
+      return;
+    }
+
     if (url.pathname === "/v1/catalog/products") {
       const q = url.searchParams.get("q")?.toLowerCase();
       const category = url.searchParams.get("category");
