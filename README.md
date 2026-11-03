@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# interior_web
 
-## Getting Started
+Customer frontend for the Interior furniture platform. It uses Next.js App
+Router, strict TypeScript, Tailwind CSS and Radix UI. Three.js support arrives
+in the dedicated product-preview phase.
 
-First, run the development server:
+The Go API lives in the sibling `interior_api` repository. Browser requests
+use same-origin `/v1/*` paths; Next.js rewrites them to `API_INTERNAL_URL`.
+
+## Setup
+
+Requirements: Node 24 and the migrated `interior_api` development database.
 
 ```bash
+cp .env.local.example .env.local
+npm ci
+npm run api:generate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. Run the backend on `http://localhost:5050` or
+change `API_INTERNAL_URL`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run dev          # Next.js development server
+npm run lint         # ESLint, no warnings allowed
+npm run typecheck    # strict TypeScript
+npm run test         # Vitest + Testing Library
+npm run test:e2e     # Playwright desktop and mobile projects
+npm run api:generate # regenerate types from the sibling Go OpenAPI file
+npm run api:check    # fail when generated types are stale
+npm run build        # production build (Webpack; dev uses Turbopack)
+npm run check        # lint + types + unit tests + build
+```
 
-## Learn More
+Playwright needs a local browser once: `npx playwright install chromium`.
 
-To learn more about Next.js, take a look at the following resources:
+## Architecture rules
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Pages and layouts are Server Components unless interactivity requires a
+  narrow client boundary.
+- Public catalog/product pages fetch Go directly from Server Components.
+  They do not use TanStack Query.
+- TanStack Query is opt-in for authenticated client interactions: auth state,
+  designs, editor persistence and quotes. Its provider is not mounted globally.
+- `API_INTERNAL_URL` is server-only. Browser code calls relative `/v1/*` URLs
+  with credentials.
+- Server API calls forward the cookie, omit Origin, validate one client IP from
+  a trusted platform header and overwrite both forwarding headers.
+- Money remains integer minor units and dimensions remain millimetres outside
+  the future Three.js rendering boundary.
+- Generated API types are never edited manually.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+See the backend's `docs/FRONTEND_HANDOFF.md` for the complete cookie, proxy,
+OpenAPI, coordinate, GLB and versioning contract.
 
-## Deploy on Vercel
+## Phase workflow
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Every phase follows: decisions → plan → approval → `phase-N` branch → verify →
+report → developer says `merge`. Never push from the implementation session.
