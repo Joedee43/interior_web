@@ -24,13 +24,13 @@ export async function fetchCatalogCategories(): Promise<CatalogCategory[]> {
   } catch (error) {
     if (error instanceof ApiError) {
       console.error(
-        `Failed to fetch catalog categories [status ${error.status}, code ${error.code}]`,
+        `Failed to fetch catalog categories [status ${error.status}, code ${error.code}]:`,
         error.message,
       );
-    } else {
-      console.error("Unexpected error fetching catalog categories", error);
+      return [];
     }
-    return [];
+    // Re-throw framework control-flow signals (e.g. Next.js dynamic prerender signals)
+    throw error;
   }
 }
 

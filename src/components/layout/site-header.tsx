@@ -17,21 +17,26 @@ export function SiteHeader() {
           <span className="font-serif text-xl tracking-[-0.03em]">Interior</span>
         </Link>
 
-        <nav aria-label="Primary navigation" className="hidden items-center gap-7 md:flex">
-          <a className="nav-link" href="#experience">
-            Experience
-          </a>
-          <a className="nav-link" href="#foundation">
-            Foundation
-          </a>
-          <a className="nav-link" href="#roadmap">
-            Roadmap
-          </a>
+        <nav
+          aria-label="Primary navigation"
+          className="hidden items-center gap-7 md:flex"
+        >
+          <Link className="nav-link font-medium" href="/catalog">
+            Catalog
+          </Link>
+          <Link className="nav-link font-medium" href="/#categories">
+            Categories
+          </Link>
+          <Link className="nav-link font-medium" href="/#benefits">
+            How it works
+          </Link>
         </nav>
 
-        <Button asChild variant="secondary" size="sm">
-          <a href="#foundation">Explore the build</a>
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button asChild variant="primary" size="sm">
+            <Link href="/catalog">Browse Catalog</Link>
+          </Button>
+        </div>
       </div>
     </header>
   );
