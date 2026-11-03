@@ -49,6 +49,22 @@ export function formatDimensions(
   return `${dimensions.width_mm} × ${dimensions.depth_mm} × ${dimensions.height_mm} mm`;
 }
 
+/**
+ * Formats product weight in grams or kilograms.
+ */
+export function formatWeight(weightG?: number | null): string | null {
+  if (typeof weightG !== "number" || weightG <= 0) {
+    return null;
+  }
+  if (weightG >= 1000) {
+    const kg = weightG / 1000;
+    return `${new Intl.NumberFormat("en-ET", {
+      maximumFractionDigits: 1,
+    }).format(kg)} kg`;
+  }
+  return `${weightG} g`;
+}
+
 function getCurrencyFractionDigits(currency: string): number {
   try {
     const formatter = new Intl.NumberFormat("en-ET", {

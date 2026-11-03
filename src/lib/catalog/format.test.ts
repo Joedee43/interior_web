@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDimensions, formatMoney, formatPrice } from "./format";
+import {
+  formatDimensions,
+  formatMoney,
+  formatPrice,
+  formatWeight,
+} from "./format";
 
 describe("formatMoney", () => {
   it("formats ETB minor units deterministically using en-ET locale", () => {
@@ -55,5 +60,23 @@ describe("formatDimensions", () => {
     expect(formatDimensions(null)).toBe("Dimensions unavailable");
     expect(formatDimensions(undefined)).toBe("Dimensions unavailable");
     expect(formatDimensions({ width_mm: 1200 })).toBe("Dimensions unavailable");
+  });
+});
+
+describe("formatWeight", () => {
+  it("formats grams under 1000 as g", () => {
+    expect(formatWeight(450)).toBe("450 g");
+  });
+
+  it("formats grams 1000 and above as kg with at most 1 decimal place", () => {
+    expect(formatWeight(12500)).toBe("12.5 kg");
+    expect(formatWeight(1000)).toBe("1 kg");
+  });
+
+  it("returns null for non-positive or missing weight", () => {
+    expect(formatWeight(0)).toBeNull();
+    expect(formatWeight(-10)).toBeNull();
+    expect(formatWeight(undefined)).toBeNull();
+    expect(formatWeight(null)).toBeNull();
   });
 });
