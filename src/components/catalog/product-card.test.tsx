@@ -44,4 +44,11 @@ describe("ProductCard", () => {
     expect(screen.getByTestId("product-image-fallback")).toBeInTheDocument();
     expect(screen.getByText("Image pending")).toBeInTheDocument();
   });
+
+  it("links to the product detail route using company slug and product slug", () => {
+    render(<ProductCard product={mockProduct} />);
+
+    const link = screen.getByRole("link", { name: "Oak Executive Desk" });
+    expect(link).toHaveAttribute("href", "/products/woodcraft/oak-executive-desk");
+  });
 });

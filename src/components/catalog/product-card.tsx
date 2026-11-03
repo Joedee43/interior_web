@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { CatalogProductCard as ProductCardType } from "@/lib/catalog/types";
 import { ProductImage } from "./product-image";
 
@@ -8,7 +9,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   return (
     <article
-      className="relative flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-canvas"
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-canvas transition-all hover:border-ink/25 hover:shadow-md focus-within:ring-2 focus-within:ring-terracotta"
       data-testid={`product-card-${product.id}`}
       aria-labelledby={`product-title-${product.id}`}
     >
@@ -31,9 +32,14 @@ export function ProductCard({ product }: ProductCardProps) {
           </p>
           <h2
             id={`product-title-${product.id}`}
-            className="mt-1 font-serif text-xl tracking-[-0.02em] text-ink"
+            className="mt-1 font-serif text-xl tracking-[-0.02em] text-ink transition-colors group-hover:text-terracotta"
           >
-            {product.name}
+            <Link
+              href={`/products/${product.company.slug}/${product.slug}`}
+              className="after:absolute after:inset-0 focus:outline-none"
+            >
+              {product.name}
+            </Link>
           </h2>
           {product.description && (
             <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink/65">
