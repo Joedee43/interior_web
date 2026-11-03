@@ -5,7 +5,6 @@ import { hasActiveFilters } from "@/lib/catalog/query";
 import {
   type CatalogCategory,
   type CatalogQueryParams,
-  CATALOG_SORTS,
 } from "@/lib/catalog/types";
 
 interface CatalogFiltersProps {
@@ -26,7 +25,7 @@ export function CatalogFilters({ categories, params }: CatalogFiltersProps) {
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
         {/* Search query input */}
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-6">
           <label
             htmlFor="catalog-search"
             className="block text-xs font-semibold tracking-wider text-ink/70 uppercase"
@@ -46,7 +45,7 @@ export function CatalogFilters({ categories, params }: CatalogFiltersProps) {
         </div>
 
         {/* Category selector */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-4">
           <label
             htmlFor="catalog-category"
             className="block text-xs font-semibold tracking-wider text-ink/70 uppercase"
@@ -64,30 +63,6 @@ export function CatalogFilters({ categories, params }: CatalogFiltersProps) {
               {categories.map((cat) => (
                 <option key={cat.slug} value={cat.slug}>
                   {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Sort selector */}
-        <div className="lg:col-span-2">
-          <label
-            htmlFor="catalog-sort"
-            className="block text-xs font-semibold tracking-wider text-ink/70 uppercase"
-          >
-            Sort by
-          </label>
-          <div className="mt-1.5">
-            <select
-              id="catalog-sort"
-              name="sort"
-              defaultValue={params.sort}
-              className="h-11 w-full rounded-xl border border-ink/15 bg-canvas px-3 text-sm text-ink focus:border-terracotta focus:outline-none focus:ring-1 focus:ring-terracotta"
-            >
-              {CATALOG_SORTS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
                 </option>
               ))}
             </select>

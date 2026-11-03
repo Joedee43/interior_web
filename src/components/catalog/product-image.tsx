@@ -52,7 +52,7 @@ export function ProductImage({ src, alt, className }: ProductImageProps) {
       src={src}
       alt={alt}
       onError={() => setHasError(true)}
-      className={cn("size-full object-cover transition-transform duration-300", className)}
+      className={cn("size-full object-cover", className)}
       loading="lazy"
     />
   );

@@ -16,10 +16,10 @@ describe("formatMoney", () => {
 
   it("formats foreign currencies correctly according to their minor units", () => {
     const usd = formatMoney(12500, "USD");
-    expect(usd.replace(/\u00a0/g, " ")).toBe("$125.00");
+    expect(usd.replace(/\u00a0/g, " ")).toBe("USD 125.00");
 
     const jpy = formatMoney(500, "JPY");
-    expect(jpy.replace(/\u00a0/g, " ")).toBe("¥500");
+    expect(jpy.replace(/\u00a0/g, " ")).toBe("JPY 500");
   });
 
   it("defaults to ETB when currency is omitted", () => {

@@ -1,0 +1,1 @@
+// Vitest stand-in for Next.js's compile-time-only server boundary marker.

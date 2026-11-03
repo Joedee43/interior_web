@@ -10,7 +10,6 @@ describe("CatalogPagination", () => {
         currentParams={{
           q: "table",
           category: "dining",
-          sort: "price_desc",
         }}
         nextCursor="cursor-page-2"
       />,
@@ -20,14 +19,14 @@ describe("CatalogPagination", () => {
     expect(nextLink).toBeInTheDocument();
     expect(nextLink).toHaveAttribute(
       "href",
-      "/catalog?q=table&category=dining&sort=price_desc&cursor=cursor-page-2",
+      "/catalog?q=table&category=dining&cursor=cursor-page-2",
     );
   });
 
   it("returns null when nextCursor is null", () => {
     const { container } = render(
       <CatalogPagination
-        currentParams={{ sort: "newest" }}
+        currentParams={{}}
         nextCursor={null}
       />,
     );

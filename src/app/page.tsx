@@ -2,13 +2,15 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ApiError } from "@/lib/api/error";
 import { fetchCatalogCategories } from "@/lib/catalog/api";
+import type { CatalogCategory } from "@/lib/catalog/types";
 
 const customerBenefits = [
   {
     number: "01",
-    title: "True-to-scale dimensions",
-    body: "Every piece in the catalog specifies millimetre-accurate width, depth, and height so you know with certainty whether it fits your room.",
+    title: "Clear catalog dimensions",
+    body: "Every piece lists seller-provided width, depth, and height in millimetres so you can compare it with the space you have available.",
   },
   {
     number: "02",
@@ -18,12 +20,21 @@ const customerBenefits = [
   {
     number: "03",
     title: "Direct maker quotations",
-    body: "Select pieces from verified manufacturers, place them together in a virtual layout, and request consolidated proposals without middlemen.",
+    body: "Select pieces from independent makers, plan them together in a virtual layout, and send a separate quote request to each seller.",
   },
 ];
 
 async function CategoriesList() {
-  const categories = await fetchCatalogCategories();
+  let categories: CatalogCategory[];
+  try {
+    categories = await fetchCatalogCategories();
+  } catch (error) {
+    if (error instanceof ApiError) {
+      categories = [];
+    } else {
+      throw error;
+    }
+  }
 
   if (categories.length === 0) {
     return (
@@ -213,7 +224,7 @@ export default function Home() {
               Ready to furnish your space?
             </h2>
             <p className="mt-2 text-canvas/60">
-              Browse our catalog of verified makers and find the right fit today.
+              Browse furniture from independent makers and find the right fit today.
             </p>
           </div>
           <Button

@@ -5,101 +5,122 @@ import type {
   CatalogProductCard,
 } from "./types";
 
-export function normalizeCategory(raw: unknown): CatalogCategory | null {
-  if (typeof raw !== "object" || raw === null) {
-    return null;
+export class CatalogContractError extends Error {
+  constructor(message: string) {
+    super(`Invalid catalog response: ${message}`);
+    this.name = "CatalogContractError";
   }
-  const item = raw as Record<string, unknown>;
-  const slug = typeof item.slug === "string" ? item.slug.trim() : "";
-  const name = typeof item.name === "string" ? item.name.trim() : "";
+}
 
-  if (!slug || !name) {
-    return null;
+function record(value: unknown, field: string): Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new CatalogContractError(`${field} must be an object`);
   }
-  return { slug, name };
+  return value as Record<string, unknown>;
+}
+
+function nonEmptyString(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new CatalogContractError(`${field} must be a non-empty string`);
+  }
+  return value.trim();
+}
+
+function integer(value: unknown, field: string, minimum: number): number {
+  if (!Number.isSafeInteger(value) || (value as number) < minimum) {
+    throw new CatalogContractError(
+      `${field} must be a safe integer greater than or equal to ${minimum}`,
+    );
+  }
+  return value as number;
+}
+
+export function normalizeCategory(raw: unknown): CatalogCategory {
+  const item = record(raw, "category");
+  return {
+    slug: nonEmptyString(item.slug, "category.slug"),
+    name: nonEmptyString(item.name, "category.name"),
+  };
 }
 
 export function normalizeCategories(raw: unknown): CatalogCategory[] {
-  if (typeof raw !== "object" || raw === null || !("categories" in raw)) {
-    return [];
+  const response = record(raw, "categories response");
+  if (!Array.isArray(response.categories)) {
+    throw new CatalogContractError("categories must be an array");
   }
-  const list = (raw as { categories?: unknown }).categories;
-  if (!Array.isArray(list)) {
-    return [];
-  }
-
-  const result: CatalogCategory[] = [];
-  for (const item of list) {
-    const category = normalizeCategory(item);
-    if (category) {
-      result.push(category);
-    }
-  }
-  return result;
+  return response.categories.map((category) => normalizeCategory(category));
 }
 
-export function normalizeProductCard(raw: unknown): CatalogProductCard | null {
-  if (typeof raw !== "object" || raw === null) {
-    return null;
+export function normalizeProductCard(raw: unknown): CatalogProductCard {
+  const item = record(raw, "product");
+  const companyRaw = record(item.company, "product.company");
+  const priceRaw = record(item.price, "product.price");
+  const dimensionsRaw = record(item.dimensions, "product.dimensions");
+
+  const currency = nonEmptyString(
+    priceRaw.currency,
+    "product.price.currency",
+  );
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    throw new CatalogContractError(
+      "product.price.currency must be a three-letter uppercase code",
+    );
   }
-  const item = raw as Record<string, unknown>;
 
-  const id = typeof item.id === "string" ? item.id.trim() : "";
-  const slug = typeof item.slug === "string" ? item.slug.trim() : "";
-  const name = typeof item.name === "string" ? item.name.trim() : "";
-
-  if (!id || !slug || !name) {
-    return null;
-  }
-
-  const category = normalizeCategory(item.category) ?? {
-    slug: "uncategorized",
-    name: "Furniture",
+  const price = {
+    amount_minor: integer(
+      priceRaw.amount_minor,
+      "product.price.amount_minor",
+      0,
+    ),
+    currency,
   };
-
-  const companyRaw = (item.company as Record<string, unknown>) ?? {};
-  const company = {
-    slug:
-      typeof companyRaw.slug === "string" ? companyRaw.slug.trim() : "seller",
-    name:
-      typeof companyRaw.name === "string"
-        ? companyRaw.name.trim()
-        : "Independent Maker",
-  };
-
-  const priceRaw = (item.price as Record<string, unknown>) ?? {};
-  const amountMinor =
-    typeof priceRaw.amount_minor === "number" ? priceRaw.amount_minor : 0;
-  const currency =
-    typeof priceRaw.currency === "string" && priceRaw.currency.trim().length > 0
-      ? priceRaw.currency.trim()
-      : "ETB";
-
-  const price = { amount_minor: amountMinor, currency };
-
-  const dimRaw = (item.dimensions as Record<string, unknown>) ?? {};
   const dimensions = {
-    width_mm: typeof dimRaw.width_mm === "number" ? dimRaw.width_mm : 0,
-    depth_mm: typeof dimRaw.depth_mm === "number" ? dimRaw.depth_mm : 0,
-    height_mm: typeof dimRaw.height_mm === "number" ? dimRaw.height_mm : 0,
+    width_mm: integer(
+      dimensionsRaw.width_mm,
+      "product.dimensions.width_mm",
+      1,
+    ),
+    depth_mm: integer(
+      dimensionsRaw.depth_mm,
+      "product.dimensions.depth_mm",
+      1,
+    ),
+    height_mm: integer(
+      dimensionsRaw.height_mm,
+      "product.dimensions.height_mm",
+      1,
+    ),
   };
 
-  const primaryImageUrl =
-    typeof item.primary_image_url === "string" &&
-    item.primary_image_url.trim().length > 0
-      ? item.primary_image_url.trim()
-      : null;
+  let description: string | undefined;
+  if (item.description !== undefined) {
+    if (typeof item.description !== "string") {
+      throw new CatalogContractError("product.description must be a string");
+    }
+    description = item.description.trim() || undefined;
+  }
 
-  const description =
-    typeof item.description === "string" ? item.description.trim() : undefined;
+  let primaryImageUrl: string | null;
+  if (item.primary_image_url === null) {
+    primaryImageUrl = null;
+  } else {
+    primaryImageUrl = nonEmptyString(
+      item.primary_image_url,
+      "product.primary_image_url",
+    );
+  }
 
   return {
-    id,
-    slug,
-    name,
+    id: nonEmptyString(item.id, "product.id"),
+    slug: nonEmptyString(item.slug, "product.slug"),
+    name: nonEmptyString(item.name, "product.name"),
     description,
-    category,
-    company,
+    category: normalizeCategory(item.category),
+    company: {
+      slug: nonEmptyString(companyRaw.slug, "product.company.slug"),
+      name: nonEmptyString(companyRaw.name, "product.company.name"),
+    },
     price,
     formattedPrice: formatPrice(price),
     dimensions,
@@ -109,27 +130,28 @@ export function normalizeProductCard(raw: unknown): CatalogProductCard | null {
 }
 
 export function normalizeProductPage(raw: unknown): CatalogPage {
-  if (typeof raw !== "object" || raw === null) {
-    return { products: [], nextCursor: null };
-  }
-  const item = raw as Record<string, unknown>;
-  const rawList = Array.isArray(item.products) ? item.products : [];
-
-  const products: CatalogProductCard[] = [];
-  for (const entry of rawList) {
-    const card = normalizeProductCard(entry);
-    if (card) {
-      products.push(card);
-    }
+  const response = record(raw, "product page");
+  if (!Array.isArray(response.products)) {
+    throw new CatalogContractError("products must be an array");
   }
 
-  const nextCursor =
-    typeof item.next_cursor === "string" && item.next_cursor.trim().length > 0
-      ? item.next_cursor.trim()
-      : null;
+  let nextCursor: string | null;
+  if (response.next_cursor === null) {
+    nextCursor = null;
+  } else if (
+    typeof response.next_cursor === "string" &&
+    response.next_cursor.length > 0
+  ) {
+    // Cursors are opaque. Do not trim, decode, or otherwise normalize them.
+    nextCursor = response.next_cursor;
+  } else {
+    throw new CatalogContractError(
+      "next_cursor must be a non-empty string or null",
+    );
+  }
 
   return {
-    products,
+    products: response.products.map((product) => normalizeProductCard(product)),
     nextCursor,
   };
 }

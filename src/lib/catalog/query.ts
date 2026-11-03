@@ -1,33 +1,14 @@
-import {
-  type CatalogQueryParams,
-  type CatalogSort,
-  CATALOG_SORTS,
-  DEFAULT_CATALOG_SORT,
-} from "./types";
+import type { CatalogQueryParams } from "./types";
 
 export type RawSearchParams =
   | Record<string, string | string[] | undefined>
   | URLSearchParams;
 
 /**
- * Normalizes input sort string to a supported CatalogSort. Defaults to "newest".
- */
-export function normalizeSort(sort?: unknown): CatalogSort {
-  if (typeof sort === "string") {
-    const trimmed = sort.trim().toLowerCase();
-    if (CATALOG_SORTS.some((option) => option.value === trimmed)) {
-      return trimmed as CatalogSort;
-    }
-  }
-  return DEFAULT_CATALOG_SORT;
-}
-
-/**
  * Parses and normalizes incoming search parameters strictly according to the catalog contract:
  * - q: trimmed non-empty string
  * - category: trimmed non-empty string
- * - sort: validated against CATALOG_SORTS, default "newest"
- * - cursor: trimmed non-empty string
+ * - cursor: an opaque, non-empty string preserved byte-for-byte
  * - Any unknown parameter is discarded.
  */
 export function parseCatalogParams(params: RawSearchParams): CatalogQueryParams {
@@ -44,20 +25,19 @@ export function parseCatalogParams(params: RawSearchParams): CatalogQueryParams 
 
   const rawQ = getParam("q")?.trim();
   const rawCategory = getParam("category")?.trim();
-  const rawSort = getParam("sort");
-  const rawCursor = getParam("cursor")?.trim();
+  const rawCursor = getParam("cursor");
 
   return {
     q: rawQ && rawQ.length > 0 ? rawQ : undefined,
     category: rawCategory && rawCategory.length > 0 ? rawCategory : undefined,
-    sort: normalizeSort(rawSort),
-    cursor: rawCursor && rawCursor.length > 0 ? rawCursor : undefined,
+    cursor:
+      rawCursor !== undefined && rawCursor.length > 0 ? rawCursor : undefined,
   };
 }
 
 /**
  * Builds a canonical URL for /catalog given a partial set of query parameters.
- * Cleans out undefined/empty params, keeps sorting if non-default, and preserves cursor when passed.
+ * Cleans out undefined/empty filters and preserves an opaque cursor exactly.
  */
 export function buildCatalogUrl(
   params: Partial<CatalogQueryParams>,
@@ -71,11 +51,8 @@ export function buildCatalogUrl(
   if (params.category && params.category.trim().length > 0) {
     search.set("category", params.category.trim());
   }
-  if (params.sort && params.sort !== DEFAULT_CATALOG_SORT) {
-    search.set("sort", params.sort);
-  }
-  if (params.cursor && params.cursor.trim().length > 0) {
-    search.set("cursor", params.cursor.trim());
+  if (params.cursor !== undefined && params.cursor.length > 0) {
+    search.set("cursor", params.cursor);
   }
 
   const query = search.toString();
@@ -83,7 +60,7 @@ export function buildCatalogUrl(
 }
 
 /**
- * Builds the URL for the next cursor page while preserving active search, category, and sort filters.
+ * Builds the URL for the next cursor page while preserving active filters.
  */
 export function buildNextPageUrl(
   current: CatalogQueryParams,
@@ -92,19 +69,17 @@ export function buildNextPageUrl(
   return buildCatalogUrl({
     q: current.q,
     category: current.category,
-    sort: current.sort,
     cursor: nextCursor,
   });
 }
 
 /**
- * Returns whether any search or category filter is currently active, or if sort is changed from default.
+ * Returns whether any search or category filter is currently active.
  */
 export function hasActiveFilters(params: CatalogQueryParams): boolean {
   return Boolean(
     (params.q && params.q.length > 0) ||
-      (params.category && params.category.length > 0) ||
-      params.sort !== DEFAULT_CATALOG_SORT,
+      (params.category && params.category.length > 0),
   );
 }
 

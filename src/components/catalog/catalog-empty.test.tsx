@@ -5,7 +5,7 @@ import { CatalogEmpty } from "./catalog-empty";
 
 describe("CatalogEmpty", () => {
   it("renders filtered empty message with clear button when search is active", () => {
-    render(<CatalogEmpty params={{ q: "nonexistent", sort: "newest" }} />);
+    render(<CatalogEmpty params={{ q: "nonexistent" }} />);
 
     expect(
       screen.getByText("No furniture matches your search"),
@@ -16,7 +16,7 @@ describe("CatalogEmpty", () => {
   });
 
   it("renders filtered empty message when category filter is active", () => {
-    render(<CatalogEmpty params={{ category: "chairs", sort: "newest" }} />);
+    render(<CatalogEmpty params={{ category: "chairs" }} />);
 
     expect(
       screen.getByText("No furniture matches your search"),
@@ -24,7 +24,7 @@ describe("CatalogEmpty", () => {
   });
 
   it("renders unfiltered empty message when no filters are set", () => {
-    render(<CatalogEmpty params={{ sort: "newest" }} />);
+    render(<CatalogEmpty params={{}} />);
 
     expect(
       screen.getByText("No furniture available yet"),

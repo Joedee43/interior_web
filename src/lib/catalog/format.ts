@@ -18,6 +18,7 @@ export function formatMoney(
   return new Intl.NumberFormat("en-ET", {
     style: "currency",
     currency: normCurrency,
+    currencyDisplay: "code",
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
   }).format(majorAmount);

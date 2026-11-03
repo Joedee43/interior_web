@@ -1,22 +1,6 @@
-export type CatalogSort = "newest" | "price_asc" | "price_desc";
-
-export interface SortOption {
-  value: CatalogSort;
-  label: string;
-}
-
-export const CATALOG_SORTS: readonly SortOption[] = [
-  { value: "newest", label: "Newest arrivals" },
-  { value: "price_asc", label: "Price: Low to High" },
-  { value: "price_desc", label: "Price: High to Low" },
-] as const;
-
-export const DEFAULT_CATALOG_SORT: CatalogSort = "newest";
-
 export interface CatalogQueryParams {
   q?: string;
   category?: string;
-  sort: CatalogSort;
   cursor?: string;
 }
 

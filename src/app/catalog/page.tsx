@@ -2,11 +2,17 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { CatalogEmpty } from "@/components/catalog/catalog-empty";
+import { CatalogFailure } from "@/components/catalog/catalog-failure";
 import { CatalogFilters } from "@/components/catalog/catalog-filters";
 import { CatalogPagination } from "@/components/catalog/catalog-pagination";
 import { ProductCard } from "@/components/catalog/product-card";
+import { ApiError } from "@/lib/api/error";
 import { fetchCatalogCategories, fetchCatalogProducts } from "@/lib/catalog/api";
-import { parseCatalogParams } from "@/lib/catalog/query";
+import { buildCatalogUrl, parseCatalogParams } from "@/lib/catalog/query";
+import type {
+  CatalogCategory,
+  CatalogPage as CatalogPageData,
+} from "@/lib/catalog/types";
 
 interface CatalogPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -18,11 +24,16 @@ export async function generateMetadata({
   const resolved = await searchParams;
   const params = parseCatalogParams(resolved);
 
-  let title = "Furniture Catalog · Interior";
+  let title = "Furniture Catalog";
   if (params.q) {
-    title = `"${params.q}" · Furniture Catalog · Interior`;
+    title = `“${params.q}” — Furniture Catalog`;
   } else if (params.category) {
-    title = `${params.category} · Furniture Catalog · Interior`;
+    const categoryName = params.category
+      .split("-")
+      .filter(Boolean)
+      .map((part) => part[0]?.toUpperCase() + part.slice(1))
+      .join(" ");
+    title = `${categoryName} — Furniture Catalog`;
   }
 
   return {
@@ -36,10 +47,24 @@ async function CatalogContent({ searchParams }: CatalogPageProps) {
   const resolved = await searchParams;
   const params = parseCatalogParams(resolved);
 
-  const [categories, catalogPage] = await Promise.all([
-    fetchCatalogCategories(),
-    fetchCatalogProducts(params),
-  ]);
+  let categories: CatalogCategory[];
+  let catalogPage: CatalogPageData;
+  try {
+    [categories, catalogPage] = await Promise.all([
+      fetchCatalogCategories(),
+      fetchCatalogProducts(params),
+    ]);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return (
+        <CatalogFailure
+          requestId={error.requestId}
+          retryUrl={buildCatalogUrl(params)}
+        />
+      );
+    }
+    throw error;
+  }
 
   const { products, nextCursor, recoveredFromInvalidCursor } = catalogPage;
 
@@ -121,9 +146,8 @@ export default function CatalogPage({ searchParams }: CatalogPageProps) {
           Curated Furniture Pieces
         </h1>
         <p className="mt-4 text-base leading-relaxed text-ink/70 sm:text-lg">
-          Browse real-scale furniture from verified manufacturers. Every piece
-          is built with verified dimensions and customizable finishes ready for
-          your virtual space.
+          Browse furniture from independent makers using clear catalog
+          dimensions and finish options prepared for future room planning.
         </p>
       </div>
 

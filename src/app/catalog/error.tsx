@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 interface ErrorProps {
-  error: Error & { digest?: string; requestId?: string; code?: string };
+  error: Error & { digest?: string };
   reset: () => void;
 }
 
@@ -14,8 +14,6 @@ export default function CatalogError({ error, reset }: ErrorProps) {
   useEffect(() => {
     console.error("Catalog route error:", error);
   }, [error]);
-
-  const requestId = error.requestId ?? error.digest;
 
   return (
     <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 text-center">
@@ -29,9 +27,10 @@ export default function CatalogError({ error, reset }: ErrorProps) {
           server. Please try again or clear your current search.
         </p>
 
-        {requestId && (
+        {error.digest && (
           <div className="mt-5 rounded-lg bg-canvas px-4 py-2 font-mono text-xs text-ink/60 border border-ink/10">
-            Request ID: <span className="text-ink select-all">{requestId}</span>
+            Error reference:{" "}
+            <span className="text-ink select-all">{error.digest}</span>
           </div>
         )}
 

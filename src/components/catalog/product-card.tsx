@@ -8,7 +8,7 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   return (
     <article
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-canvas transition-shadow duration-300 hover:shadow-[0_12px_36px_rgba(27,24,19,0.08)]"
+      className="relative flex flex-col overflow-hidden rounded-2xl border border-ink/10 bg-canvas"
       data-testid={`product-card-${product.id}`}
       aria-labelledby={`product-title-${product.id}`}
     >
@@ -16,7 +16,6 @@ export function ProductCard({ product }: ProductCardProps) {
         <ProductImage
           src={product.primaryImageUrl}
           alt={product.name}
-          className="group-hover:scale-103"
         />
         <div className="absolute top-3 left-3">
           <span className="inline-block rounded-full border border-ink/10 bg-canvas/90 px-3 py-1 text-xs font-medium text-ink/80 backdrop-blur-sm">
