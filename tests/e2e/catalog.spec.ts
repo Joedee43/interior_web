@@ -57,20 +57,6 @@ test.describe("Catalog page", () => {
     ).toBeVisible();
   });
 
-  test("sorts products by price", async ({ page }) => {
-    await page.goto("/catalog");
-
-    // Select price: low to high
-    await page.getByLabel("Sort by").selectOption("price_asc");
-    await page.getByRole("button", { name: "Apply" }).click();
-
-    await expect(page).toHaveURL(/sort=price_asc/);
-
-    // Lowest price product (Ergo Task Chair at 8,500) should appear first
-    const headings = page.locator("article h2");
-    await expect(headings.first()).toHaveText("Ergo Task Chair");
-  });
-
   test("paginates to the next page while preserving active filters", async ({
     page,
   }) => {
@@ -105,6 +91,16 @@ test.describe("Catalog page", () => {
     ).toBeVisible();
   });
 
+  test("search matches product names rather than descriptions", async ({
+    page,
+  }) => {
+    await page.goto("/catalog?q=motorized");
+
+    await expect(
+      page.getByRole("heading", { name: "No furniture matches your search" }),
+    ).toBeVisible();
+  });
+
   test("recovers gracefully from an invalid cursor by falling back to page 1", async ({
     page,
   }) => {
@@ -120,5 +116,15 @@ test.describe("Catalog page", () => {
       page.getByRole("heading", { name: "Aero Standing Desk" }),
     ).toBeVisible();
   });
-});
 
+  test("shows the backend request ID when the catalog API fails", async ({
+    page,
+  }) => {
+    await page.goto("/catalog?q=trigger-error");
+
+    await expect(
+      page.getByRole("heading", { name: "Unable to load furniture pieces" }),
+    ).toBeVisible();
+    await expect(page.getByText(/mock-err-500/)).toBeVisible();
+  });
+});

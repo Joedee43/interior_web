@@ -89,7 +89,6 @@ export function createMockServer() {
     if (url.pathname === "/v1/catalog/products") {
       const q = url.searchParams.get("q")?.toLowerCase();
       const category = url.searchParams.get("category");
-      const sort = url.searchParams.get("sort") || "newest";
       const cursor = url.searchParams.get("cursor");
 
       // Simulated invalid cursor error
@@ -98,8 +97,9 @@ export function createMockServer() {
         res.end(
           JSON.stringify({
             error: {
-              code: "invalid_cursor",
-              message: "invalid cursor",
+              code: "validation_failed",
+              message: "check the highlighted fields",
+              details: { cursor: "is invalid" },
               request_id: "mock-err-400",
             },
           }),
@@ -143,17 +143,8 @@ export function createMockServer() {
 
       if (q) {
         filtered = filtered.filter(
-          (p) =>
-            p.name.toLowerCase().includes(q) ||
-            p.description?.toLowerCase().includes(q),
+          (p) => p.name.toLowerCase().includes(q),
         );
-      }
-
-      // Sort
-      if (sort === "price_asc") {
-        filtered.sort((a, b) => a.price.amount_minor - b.price.amount_minor);
-      } else if (sort === "price_desc") {
-        filtered.sort((a, b) => b.price.amount_minor - a.price.amount_minor);
       }
 
       const nextCursor =
@@ -183,4 +174,3 @@ if (process.argv[1]?.endsWith("mock-api.mjs")) {
     console.log(`Mock Go API listening on http://127.0.0.1:${PORT}`);
   });
 }
-

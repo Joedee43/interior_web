@@ -28,7 +28,7 @@ npm run dev          # Next.js development server
 npm run lint         # ESLint, no warnings allowed
 npm run typecheck    # strict TypeScript
 npm run test         # Vitest + Testing Library
-npm run test:e2e     # Playwright desktop and mobile projects
+npm run test:e2e     # Playwright desktop/mobile projects with a local mock API
 npm run api:generate # regenerate types from the sibling Go OpenAPI file
 npm run api:check    # fail when generated types are stale
 npm run build        # production build (Webpack; dev uses Turbopack)
