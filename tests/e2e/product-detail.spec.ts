@@ -17,6 +17,8 @@ test.describe("Product detail page", () => {
     await expect(
       page.locator("p.eyebrow", { hasText: "ErgoSeat" }),
     ).toBeVisible();
+    await expect(page).toHaveTitle("Ergo Task Chair — ErgoSeat · Interior");
+    await expect(page.locator("main")).toHaveCount(1);
   });
 
   test("displays gallery, allows thumbnail switching and modal lightbox enlargement", async ({
@@ -140,5 +142,19 @@ test.describe("Product detail page", () => {
     await expect(
       page.getByRole("heading", { name: "This room is still empty." }),
     ).toBeVisible();
+  });
+
+  test("shows the backend request ID when the detail API fails", async ({
+    page,
+  }) => {
+    await page.goto("/products/ergoseat/trigger-error");
+
+    await expect(
+      page.getByRole("heading", {
+        name: "Unable to load this furniture piece",
+      }),
+    ).toBeVisible();
+    await expect(page.getByText(/mock-err-500/)).toBeVisible();
+    await expect(page.locator("main")).toHaveCount(1);
   });
 });

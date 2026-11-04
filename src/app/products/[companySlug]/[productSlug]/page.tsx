@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { ProductConfigurator } from "@/components/product/product-configurator";
+import { ProductFailure } from "@/components/product/product-failure";
 import { ProductGallery } from "@/components/product/product-gallery";
+import { ApiError } from "@/lib/api/error";
 import { getProductDetail } from "@/lib/catalog/detail-api";
 import { buildProductJsonLd, sanitizeJsonLd } from "@/lib/catalog/json-ld";
 import { serverEnv } from "@/lib/env/server";
@@ -20,12 +22,21 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { companySlug, productSlug } = await params;
-  const product = await getProductDetail(companySlug, productSlug);
+  let product;
+  try {
+    product = await getProductDetail(companySlug, productSlug);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        title: "Product",
+        robots: { index: false, follow: false },
+      };
+    }
+    throw error;
+  }
 
   if (!product) {
-    return {
-      title: "Product Not Found | Interior",
-    };
+    notFound();
   }
 
   const canonicalUrl = `${serverEnv.NEXT_PUBLIC_APP_URL}/products/${product.company.slug}/${product.slug}`;
@@ -34,7 +45,7 @@ export async function generateMetadata({
     `${product.name} by ${product.company.name} in ${product.category.name}.`;
 
   return {
-    title: `${product.name} — ${product.company.name} | Interior`,
+    title: `${product.name} — ${product.company.name}`,
     description,
     alternates: {
       canonical: canonicalUrl,
@@ -50,7 +61,20 @@ export async function generateMetadata({
 
 export default async function ProductDetailPage({ params }: PageProps) {
   const { companySlug, productSlug } = await params;
-  const product = await getProductDetail(companySlug, productSlug);
+  const retryUrl = `/products/${encodeURIComponent(companySlug)}/${encodeURIComponent(productSlug)}`;
+  let product;
+  try {
+    product = await getProductDetail(companySlug, productSlug);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return (
+        <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8">
+          <ProductFailure requestId={error.requestId} retryUrl={retryUrl} />
+        </div>
+      );
+    }
+    throw error;
+  }
 
   if (!product) {
     notFound();
@@ -68,7 +92,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
         dangerouslySetInnerHTML={{ __html: sanitizedJsonLd }}
       />
 
-      <main className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
+      <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
         {/* Accessible Breadcrumbs */}
         <nav
           aria-label="Breadcrumbs"
@@ -199,7 +223,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }

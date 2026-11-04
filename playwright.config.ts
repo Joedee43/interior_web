@@ -29,7 +29,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: `npm run start -- -p ${TEST_PORT}`,
+      command: `npm run dev -- -p ${TEST_PORT}`,
       cwd: root,
       url: BASE_URL,
       reuseExistingServer: !process.env.CI,
