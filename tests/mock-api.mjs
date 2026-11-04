@@ -2,6 +2,53 @@ import http from "node:http";
 
 const PORT = Number(process.env.MOCK_API_PORT || 5055);
 
+const demoAccount = {
+  user: {
+    id: "11111111-1111-4111-8111-111111111111",
+    email: "demo-customer@example.com",
+    full_name: "Demo Customer",
+    status: "active",
+    is_platform_admin: false,
+    created_at: "2026-01-02T03:04:05Z",
+  },
+  memberships: [],
+};
+
+function errorEnvelope(code, message, requestId, details) {
+  return {
+    error: {
+      code,
+      message,
+      ...(details ? { details } : {}),
+      ...(requestId ? { request_id: requestId } : {}),
+    },
+  };
+}
+
+function readJson(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+      } catch (error) {
+        reject(error);
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
+function sessionToken(req) {
+  const cookies = (req.headers.cookie || "").split(";");
+  for (const cookie of cookies) {
+    const [name, ...value] = cookie.trim().split("=");
+    if (name === "interior_session") return value.join("=");
+  }
+  return undefined;
+}
+
 const categories = [
   { slug: "desks", name: "Desks" },
   { slug: "chairs", name: "Chairs" },
@@ -59,7 +106,20 @@ const page2Products = [
 ];
 
 export function createMockServer() {
-  return http.createServer((req, res) => {
+  const accounts = new Map([[demoAccount.user.email, demoAccount]]);
+  const sessions = new Map();
+  let nextSession = 1;
+
+  function issueSession(res, account, mode = "normal") {
+    const token = `mock-session-${nextSession++}`;
+    sessions.set(token, { account, mode });
+    res.setHeader(
+      "Set-Cookie",
+      `interior_session=${token}; Path=/; HttpOnly; SameSite=Lax`,
+    );
+  }
+
+  return http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
 
     res.setHeader("Content-Type", "application/json");
@@ -68,6 +128,123 @@ export function createMockServer() {
     if (url.pathname === "/health" || url.pathname === "/v1/health") {
       res.writeHead(200);
       res.end(JSON.stringify({ status: "API is running" }));
+      return;
+    }
+
+    if (url.pathname === "/v1/auth/me" && req.method === "GET") {
+      const session = sessions.get(sessionToken(req));
+      if (!session) {
+        res.writeHead(401);
+        res.end(
+          JSON.stringify(
+            errorEnvelope("unauthenticated", "authentication required", "mock-auth-401"),
+          ),
+        );
+        return;
+      }
+      if (session.mode === "account-error") {
+        res.writeHead(500);
+        res.end(
+          JSON.stringify(
+            errorEnvelope("internal_error", "account lookup failed", "mock-auth-me-500"),
+          ),
+        );
+        return;
+      }
+      res.writeHead(200);
+      res.end(JSON.stringify(session.account));
+      return;
+    }
+
+    if (url.pathname === "/v1/auth/login" && req.method === "POST") {
+      const body = await readJson(req);
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      if (email === "rate-limit@example.com") {
+        res.writeHead(429);
+        res.end(
+          JSON.stringify(
+            errorEnvelope("rate_limited", "too many attempts", "mock-auth-429"),
+          ),
+        );
+        return;
+      }
+      if (email === "trigger-error@example.com") {
+        res.writeHead(500);
+        res.end(
+          JSON.stringify(
+            errorEnvelope("internal_error", "login failed", "mock-auth-login-500"),
+          ),
+        );
+        return;
+      }
+      const isAccountError = email === "account-error@example.com";
+      const account = isAccountError
+        ? {
+            ...demoAccount,
+            user: {
+              ...demoAccount.user,
+              email,
+              full_name: "Account Error",
+            },
+          }
+        : accounts.get(email);
+      const validPassword =
+        body.password === "customer password 1" ||
+        (isAccountError && body.password === "password 123");
+      if (!account || !validPassword) {
+        res.writeHead(401);
+        res.end(
+          JSON.stringify(
+            errorEnvelope("invalid_credentials", "invalid email or password", "mock-auth-login-401"),
+          ),
+        );
+        return;
+      }
+      issueSession(res, account, isAccountError ? "account-error" : "normal");
+      res.writeHead(200);
+      res.end(JSON.stringify(account));
+      return;
+    }
+
+    if (url.pathname === "/v1/auth/register" && req.method === "POST") {
+      const body = await readJson(req);
+      const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+      if (accounts.has(email)) {
+        res.writeHead(409);
+        res.end(
+          JSON.stringify(
+            errorEnvelope("email_taken", "an account with this email already exists", "mock-auth-register-409"),
+          ),
+        );
+        return;
+      }
+      const account = {
+        user: {
+          id: `44444444-4444-4444-8444-${String(nextSession).padStart(12, "0")}`,
+          email,
+          full_name: body.full_name,
+          status: "active",
+          is_platform_admin: false,
+          created_at: "2026-11-04T07:00:00Z",
+        },
+        memberships: [],
+      };
+      accounts.set(email, account);
+      issueSession(res, account);
+      res.writeHead(201);
+      res.end(JSON.stringify(account));
+      return;
+    }
+
+    if (url.pathname === "/v1/auth/logout" && req.method === "POST") {
+      const token = sessionToken(req);
+      if (token) sessions.delete(token);
+      res.setHeader(
+        "Set-Cookie",
+        "interior_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
+      );
+      res.writeHead(204);
+      res.end();
       return;
     }
 

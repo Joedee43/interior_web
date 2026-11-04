@@ -1,31 +1,23 @@
 # Project status — interior_web
 
-**Updated:** 2026-11-04 · **Branch:** `phase-3` · **Backend contract:** `/v1`,
+**Updated:** 2026-11-04 · **Branch:** `phase-4` · **Backend contract:** `/v1`,
 OpenAPI 1.0.0
 
 ## Current phase
 
-Phase 3 is complete on `phase-3` and awaiting merge approval. It delivers:
+Phase 4 is complete on `phase-4` and awaiting merge approval. It delivers:
 
-- Customer-facing `/products/[companySlug]/[productSlug]` route with shareable `?variant=SKU` query parameter.
-- Server-side data fetching via `getProductDetail` using generated OpenAPI contract types, request-scoped React 19 `cache()` deduplication, and strict runtime normalization.
-- Rejection of invalid payloads: malformed required product, media, option, value, variant, and configuration fields; unsafe or non-positive numeric values; invalid currencies, media metadata, swatches, and material keys; duplicate IDs/SKUs/combinations; incomplete combinations; mismatched option maps; variant currency mismatches; and primary images absent from the gallery. Only a backend 404 produces a missing-product result.
-- Accessible catalog integration: catalog product cards link seamlessly to `/products/:companySlug/:productSlug`.
-- Responsive product detail layout with accessible breadcrumbs, maker name, product title, description, dimensions, formatted weight (when present), and specifications.
-- Interactive product gallery with primary image, broken-image fallback, keyboard-accessible thumbnail switching, and full-screen modal lightbox enlargement powered by `@radix-ui/react-dialog`.
-- Deterministic variant resolution:
-  - Case-sensitive SKU matching.
-  - Fallback to first available variant by position, or first variant if all are unavailable.
-  - Valid unavailable SKUs remain selected and clearly display "Currently unavailable".
-  - Unknown SKUs cleanly fall back to default and are replaced with the canonical selected SKU via `router.replace(..., { scroll: false })`.
-  - Option values with no available matching variant are disabled, except values belonging to the currently selected unavailable SKU.
-  - Selecting an option value chooses the available variant that preserves the most current selections, with variant position as deterministic tie-breaker.
-- Clean presentation for non-configurable products: renders base price, dimensions, weight, and no configurator.
-- SEO & structured data: dynamic metadata with one application of the Interior brand, description, canonical URL without variant query, Open Graph image, and sanitized schema.org `Product` JSON-LD. Structured data uses absolute image URLs and each currency's actual fraction digits, includes only available variants in `AggregateOffer`, and emits an out-of-stock `Offer` when every variant is unavailable.
-- Zero placeholder or disabled action buttons: strictly no disabled cart, quote, design, or authentication actions.
-- Error resilience: backend 404 triggers Next.js `notFound()`. API failures render recovery UI inside the Server Component boundary with the real backend request ID; unexpected application failures use the client error boundary and label a Next.js digest only as an internal error reference.
-- Valid page semantics: the root layout owns the only `<main>` landmark on product pages.
-- Browser tests start their own Next.js development server, so `npm run test:e2e` does not depend on a pre-existing production build.
+- Customer registration, login and logout through same-origin browser requests, so the Go API's HttpOnly session cookie reaches the browser unchanged.
+- Strict normalization of the complete `/v1/auth/me` account contract, including user identity and company memberships. Only a 401 is treated as signed out; malformed responses and other failures remain errors.
+- Request-deduplicated authenticated server fetching that forwards the incoming cookie and preserves backend request IDs.
+- A stable TanStack Query provider for interactive authenticated state. Login and registration replace prior user-scoped cache, logout clears it, and any authenticated query or mutation receiving a 401 clears the cached account.
+- Backend-matching React Hook Form and Zod validation: names and emails are normalized, passwords remain exact and use the backend's 12–128 Unicode-character limits, and registration confirms the password locally.
+- Field-level handling for `validation_failed` and `email_taken`, generic invalid-credential copy, explicit rate-limit copy, and real request IDs for unexpected failures.
+- Dynamic, no-index `/login` and `/register` routes. Safe `next` paths preserve local queries/fragments while rejecting absolute URLs, scheme-relative paths, backslashes and auth loops; `/account` is the default.
+- Server-validated protection for `/account`. A missing or expired session redirects to `/login?next=/account`; non-401 API failures render recovery UI with the backend request ID.
+- Authenticated header states for loading, signed out, signed in, logout and account-service failure. Failure never masquerades as signed out.
+- A protected account summary with name, email, creation date and active company memberships as read-only names and roles. Seller/admin navigation and unavailable account actions are not exposed.
+- Password change, password reset, logout-all, account editing and seller/admin UI remain deferred.
 
 Verification completed on 2026-11-04:
 
@@ -33,18 +25,18 @@ Verification completed on 2026-11-04:
 - Backend OpenAPI types match contract (`npm run api:check`).
 - Strict lint (`npm run lint`) passes with 0 warnings.
 - TypeScript (`npm run typecheck`) passes with 0 errors.
-- Vitest unit and component tests (97 tests across 19 test files) all pass.
-- Production build (`npm run build`) compiles and partial-prerenders all routes successfully.
-- Playwright E2E tests (32 tests across desktop Chromium and mobile Pixel 7) all pass from a standalone development-server startup.
+- Vitest unit and component tests (132 tests across 30 test files) all pass.
+- Production build (`npm run build`) compiles successfully; `/login`, `/register` and `/account` are request-time routes while public routes retain their existing static/partial-prerender behavior.
+- Playwright E2E tests (50 tests across desktop Chromium and mobile Pixel 7) all pass from a standalone development-server startup.
 - Production dependency audit (`npm audit --omit=dev`) found 0 vulnerabilities.
-- Manual checks against the running Go API rendered the seeded configurable `addis-lounge-chair` and non-configurable `oslo-3-seat-sofa` with HTTP 200 responses and their expected product names and prices.
+- Manual verification against the running Go API confirmed seeded-customer login (200), protected account rendering and session persistence (200), logout (204), and the subsequent `/account` redirect to `/login?next=/account` (307).
 
 ## Accepted delivery phases
 
 1. Foundation and API boundary (Complete).
 2. Public catalog (Complete on `main`).
-3. Product detail and variant resolution (Complete on `phase-3`).
-4. Authentication and protected layouts.
+3. Product detail and variant resolution (Complete on `main`).
+4. Authentication and protected layouts (Complete on `phase-4`).
 5. Three.js product preview and KHR material variants.
 6. Design creation/list/read-only room rendering.
 7. Interactive editor and auto-save.

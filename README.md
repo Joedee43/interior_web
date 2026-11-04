@@ -43,8 +43,9 @@ Playwright needs a local browser once: `npx playwright install chromium`.
   narrow client boundary.
 - Public catalog/product pages fetch Go directly from Server Components.
   They do not use TanStack Query.
-- TanStack Query is opt-in for authenticated client interactions: auth state,
-  designs, editor persistence and quotes. Its provider is not mounted globally.
+- One stable TanStack Query provider shares authenticated client state. Query
+  usage remains limited to auth, designs, editor persistence and quotes; public
+  catalog and product data stays in Server Components.
 - `API_INTERNAL_URL` is server-only. Browser code calls relative `/v1/*` URLs
   with credentials.
 - Server API calls forward the cookie, omit Origin, validate one client IP from
