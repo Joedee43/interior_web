@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 
+import { AccountNav } from "@/components/auth/account-nav";
 import { Button } from "@/components/ui/button";
 
 export function SiteHeader() {
@@ -33,9 +36,10 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button asChild variant="primary" size="sm">
+          <Button asChild variant="secondary" size="sm">
             <Link href="/catalog">Browse Catalog</Link>
           </Button>
+          <AccountNav />
         </div>
       </div>
     </header>
