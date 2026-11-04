@@ -5,7 +5,7 @@ import { Suspense } from "react";
 
 import { ProductConfigurator } from "@/components/product/product-configurator";
 import { ProductFailure } from "@/components/product/product-failure";
-import { ProductGallery } from "@/components/product/product-gallery";
+import { ProductMediaViewer } from "@/components/product/product-media-viewer";
 import { ApiError } from "@/lib/api/error";
 import { getProductDetail } from "@/lib/catalog/detail-api";
 import { buildProductJsonLd, sanitizeJsonLd } from "@/lib/catalog/json-ld";
@@ -134,10 +134,13 @@ export default async function ProductDetailPage({ params }: PageProps) {
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-14">
           {/* Left Column: Gallery & Images */}
           <div className="lg:col-span-7">
-            <ProductGallery
-              images={product.images}
-              productName={product.name}
-            />
+            <Suspense
+              fallback={
+                <div className="aspect-[4/3] animate-pulse rounded-2xl bg-canvas-deep/30" />
+              }
+            >
+              <ProductMediaViewer product={product} />
+            </Suspense>
           </div>
 
           {/* Right Column: Information, Configurator & Specs */}
