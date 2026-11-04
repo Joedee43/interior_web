@@ -54,16 +54,21 @@ class PreviewBoundary extends Component<BoundaryProps> {
   }
 }
 
+export function watchForContextLoss(
+  canvas: HTMLCanvasElement,
+  onFailure: (message: string) => void,
+) {
+  const contextLost = (event: Event) => {
+    event.preventDefault();
+    onFailure("The WebGL context was lost.");
+  };
+  canvas.addEventListener("webglcontextlost", contextLost);
+  return () => canvas.removeEventListener("webglcontextlost", contextLost);
+}
+
 function ContextLossGuard({ onFailure }: { onFailure: (message: string) => void }) {
   const canvas = useThree(({ gl }) => gl.domElement);
-  useEffect(() => {
-    const contextLost = (event: Event) => {
-      event.preventDefault();
-      onFailure("The WebGL context was lost.");
-    };
-    canvas.addEventListener("webglcontextlost", contextLost);
-    return () => canvas.removeEventListener("webglcontextlost", contextLost);
-  }, [canvas, onFailure]);
+  useEffect(() => watchForContextLoss(canvas, onFailure), [canvas, onFailure]);
   return null;
 }
 

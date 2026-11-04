@@ -26,6 +26,8 @@ test.describe("Product detail page", () => {
   }) => {
     await page.goto("/products/ergoseat/ergo-task-chair");
 
+    await page.getByRole("tab", { name: "Photos" }).click();
+
     // Thumbnails exist
     const thumbnails = page.getByTestId("gallery-thumbnails");
     await expect(thumbnails).toBeVisible();
@@ -156,5 +158,51 @@ test.describe("Product detail page", () => {
     ).toBeVisible();
     await expect(page.getByText(/mock-err-500/)).toBeVisible();
     await expect(page.locator("main")).toHaveCount(1);
+  });
+
+  test("loads 3D automatically on desktop and reuses it for exact variant changes", async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name === "mobile", "desktop behavior");
+    let modelRequests = 0;
+    page.on("request", (request) => {
+      if (request.url().includes("/v1/media/chair.glb")) modelRequests += 1;
+    });
+
+    await page.goto("/products/ergoseat/ergo-task-chair?variant=ERGO-GREY");
+    await expect(page.getByRole("tab", { name: "3D view" })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("product-3d-preview")).toBeVisible();
+    await expect(page.getByTestId("preview-selected-sku")).toContainText("ERGO-GREY");
+    await page.getByRole("radio", { name: /Blue/i }).click();
+    await expect(page.getByTestId("preview-selected-sku")).toContainText("ERGO-BLUE");
+    await expect.poll(() => modelRequests).toBe(1);
+    await page.getByTestId("reset-3d-view").click();
+  });
+
+  test("defers the GLB on mobile until the customer selects 3D", async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== "mobile", "mobile behavior");
+    let modelRequests = 0;
+    page.on("request", (request) => {
+      if (request.url().includes("/v1/media/chair.glb")) modelRequests += 1;
+    });
+
+    await page.goto("/products/ergoseat/ergo-task-chair");
+    await expect(page.getByRole("tab", { name: "Photos" })).toHaveAttribute("aria-selected", "true");
+    await page.waitForTimeout(300);
+    expect(modelRequests).toBe(0);
+    await page.getByRole("tab", { name: "3D view" }).click();
+    await expect(page.getByTestId("product-3d-preview")).toBeVisible();
+    await expect.poll(() => modelRequests).toBe(1);
+  });
+
+  test("keeps product information usable when a GLB is broken", async ({ page }) => {
+    await page.goto("/products/ergoseat/broken-preview");
+    await page.getByRole("tab", { name: "3D view" }).click();
+    await expect(page.getByTestId("preview-fallback")).toBeVisible();
+    await expect(page.getByText("3D preview unavailable")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Broken Preview Chair" })).toBeVisible();
+    await expect(page.getByTestId("base-price")).toContainText("ETB 8,500.00");
   });
 });

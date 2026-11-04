@@ -85,13 +85,12 @@ describe("KHR materials variants", () => {
   });
 
   it("rejects missing extensions and incomplete mappings", () => {
-    const { scene, meshes } = fixture();
+    const { scene } = fixture();
     delete scene.userData.gltfExtensions;
     expect(() => validatePreviewContract(scene, model, product)).toThrow(/no usable/);
     const next = fixture();
-    delete next.meshes[0]!.userData.gltfExtensions;
+    for (const mesh of next.meshes) delete mesh.userData.gltfExtensions;
     expect(() => validatePreviewContract(next.scene, model, product)).toThrow(/missing or invalid/);
-    void meshes;
   });
 
   it("does not require KHR mappings for non-configurable models", () => {

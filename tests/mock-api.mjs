@@ -2,6 +2,82 @@ import http from "node:http";
 
 const PORT = Number(process.env.MOCK_API_PORT || 5055);
 
+function createVariantGlb() {
+  const positions = new Float32Array([
+    -0.325, 0, -0.3, 0.325, 0, -0.3, 0.325, 1.1, -0.3, -0.325, 1.1, -0.3,
+    -0.325, 0, 0.3, 0.325, 0, 0.3, 0.325, 1.1, 0.3, -0.325, 1.1, 0.3,
+  ]);
+  const indices = new Uint16Array([
+    0, 1, 2, 0, 2, 3, 5, 4, 7, 5, 7, 6, 4, 0, 3, 4, 3, 7,
+    1, 5, 6, 1, 6, 2, 3, 2, 6, 3, 6, 7, 4, 5, 1, 4, 1, 0,
+  ]);
+  const positionBytes = Buffer.from(positions.buffer);
+  const indexBytes = Buffer.from(indices.buffer);
+  const padding = Buffer.alloc((4 - ((positionBytes.length + indexBytes.length) % 4)) % 4);
+  const binary = Buffer.concat([positionBytes, indexBytes, padding]);
+  const variantNames = ["ERGO-GREY", "ERGO-BLUE", "ERGO-TERRACOTTA"];
+  const materialNames = ["grey", "blue", "terracotta"];
+  const colors = [
+    [0.45, 0.48, 0.5, 1],
+    [0.16, 0.32, 0.55, 1],
+    [0.72, 0.27, 0.12, 1],
+  ];
+  const document = {
+    asset: { version: "2.0", generator: "interior_web mock API" },
+    extensionsUsed: ["KHR_materials_variants"],
+    extensions: {
+      KHR_materials_variants: {
+        variants: variantNames.map((name) => ({ name })),
+      },
+    },
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes: [{ mesh: 0, name: "Mock chair" }],
+    meshes: [{ primitives: [{
+      attributes: { POSITION: 0 },
+      indices: 1,
+      material: 0,
+      extensions: {
+        KHR_materials_variants: {
+          mappings: variantNames.map((_, index) => ({ material: index, variants: [index] })),
+        },
+      },
+    }] }],
+    materials: materialNames.map((name, index) => ({
+      name,
+      pbrMetallicRoughness: {
+        baseColorFactor: colors[index],
+        roughnessFactor: 0.9,
+      },
+    })),
+    buffers: [{ byteLength: binary.length }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: positionBytes.length, target: 34962 },
+      { buffer: 0, byteOffset: positionBytes.length, byteLength: indexBytes.length, target: 34963 },
+    ],
+    accessors: [
+      { bufferView: 0, componentType: 5126, count: 8, type: "VEC3", min: [-0.325, 0, -0.3], max: [0.325, 1.1, 0.3] },
+      { bufferView: 1, componentType: 5123, count: indices.length, type: "SCALAR", min: [0], max: [7] },
+    ],
+  };
+  let json = Buffer.from(JSON.stringify(document));
+  json = Buffer.concat([json, Buffer.alloc((4 - (json.length % 4)) % 4, 0x20)]);
+  const total = 12 + 8 + json.length + 8 + binary.length;
+  const header = Buffer.alloc(12);
+  header.writeUInt32LE(0x46546c67, 0);
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(total, 8);
+  const jsonHeader = Buffer.alloc(8);
+  jsonHeader.writeUInt32LE(json.length, 0);
+  jsonHeader.writeUInt32LE(0x4e4f534a, 4);
+  const binaryHeader = Buffer.alloc(8);
+  binaryHeader.writeUInt32LE(binary.length, 0);
+  binaryHeader.writeUInt32LE(0x004e4942, 4);
+  return Buffer.concat([header, jsonHeader, json, binaryHeader, binary]);
+}
+
+const mockChairGlb = createVariantGlb();
+
 const demoAccount = {
   user: {
     id: "11111111-1111-4111-8111-111111111111",
@@ -254,6 +330,21 @@ export function createMockServer() {
       return;
     }
 
+    if (url.pathname === "/v1/media/chair.glb") {
+      res.setHeader("Content-Type", "model/gltf-binary");
+      res.setHeader("Content-Length", String(mockChairGlb.length));
+      res.writeHead(200);
+      res.end(mockChairGlb);
+      return;
+    }
+
+    if (url.pathname === "/v1/media/broken.glb") {
+      res.setHeader("Content-Type", "model/gltf-binary");
+      res.writeHead(200);
+      res.end(Buffer.from("not a glb"));
+      return;
+    }
+
     if (url.pathname.startsWith("/v1/media/")) {
       res.setHeader("Content-Type", "image/svg+xml");
       res.writeHead(200);
@@ -332,8 +423,8 @@ export function createMockServer() {
               content_type: "model/gltf-binary",
               size_bytes: 2048,
               position: 0,
-              materials: ["mesh", "plastic"],
-              variants: ["grey", "blue"],
+              materials: ["grey", "blue", "terracotta"],
+              variants: ["ERGO-GREY", "ERGO-BLUE", "ERGO-TERRACOTTA"],
             },
             options: [
               {
@@ -394,6 +485,37 @@ export function createMockServer() {
                 value_ids: ["val-terracotta"],
               },
             ],
+          }),
+        );
+        return;
+      }
+
+      if (companySlug === "ergoseat" && productSlug === "broken-preview") {
+        res.writeHead(200);
+        res.end(
+          JSON.stringify({
+            id: "prod-broken",
+            slug: "broken-preview",
+            name: "Broken Preview Chair",
+            description: "A product with a deliberately broken preview fixture.",
+            category: { slug: "chairs", name: "Chairs" },
+            company: { slug: "ergoseat", name: "ErgoSeat" },
+            price: { amount_minor: 850000, currency: "ETB" },
+            dimensions: { width_mm: 650, depth_mm: 600, height_mm: 1100 },
+            weight_g: null,
+            published_at: "2026-10-15T09:30:00Z",
+            primary_image_url: "/v1/media/img-chair",
+            images: [{
+              id: "img-broken", kind: "image", url: "/v1/media/img-chair",
+              content_type: "image/webp", size_bytes: 1024, width: 1200, height: 1200,
+              alt_text: "Broken preview chair", position: 0, is_primary: true,
+            }],
+            model: {
+              id: "mod-broken", kind: "model", url: "/v1/media/broken.glb",
+              content_type: "model/gltf-binary", size_bytes: 9, position: 0,
+              materials: [], variants: [],
+            },
+            options: [], variants: [],
           }),
         );
         return;

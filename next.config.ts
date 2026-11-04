@@ -5,6 +5,7 @@ const env = parseEnv(process.env);
 
 const nextConfig: NextConfig = {
   /* config options here */
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   cacheComponents: true,
   partialPrefetching: true,
   async rewrites() {

@@ -37,6 +37,7 @@ export default defineConfig({
       env: {
         PORT: String(TEST_PORT),
         API_INTERNAL_URL: `http://127.0.0.1:${MOCK_API_PORT}`,
+        NEXT_DIST_DIR: ".next-playwright",
       },
     },
   ],

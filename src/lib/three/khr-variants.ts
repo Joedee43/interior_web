@@ -125,14 +125,18 @@ export function validatePreviewContract(
   }
 
   const meshes = meshesIn(scene);
-  if (meshes.length === 0 || meshes.some((mesh) => !readMeshExtension(mesh))) {
+  const mappedMeshes = meshes.filter((mesh) => readMeshExtension(mesh));
+  const hasInvalidExtension = meshes.some(
+    (mesh) => extension(mesh.userData) !== undefined && !readMeshExtension(mesh),
+  );
+  if (mappedMeshes.length === 0 || hasInvalidExtension) {
     throw new Error("The model has missing or invalid variant mesh mappings.");
   }
 
   for (const sku of backendSkus) {
     const index = names.indexOf(sku);
     if (
-      !meshes.some((mesh) =>
+      !mappedMeshes.some((mesh) =>
         readMeshExtension(mesh)?.mappings.some(({ variants }) =>
           variants.includes(index),
         ),
@@ -163,20 +167,26 @@ export class VariantMaterialController {
     const generation = ++this.generation;
     const assignments: Array<{ mesh: Mesh; material: Material }> = [];
 
-    for (const mesh of meshesIn(this.scene)) {
-      const mapping = readMeshExtension(mesh)?.mappings.find(({ variants }) =>
-        variants.includes(variantIndex),
-      );
-      if (!mapping) continue;
-      const material = (await this.parser.getDependency(
-        "material",
-        mapping.material,
-      )).clone();
-      if (generation !== this.generation) {
-        material.dispose();
-        return false;
+    try {
+      for (const mesh of meshesIn(this.scene)) {
+        const mapping = readMeshExtension(mesh)?.mappings.find(({ variants }) =>
+          variants.includes(variantIndex),
+        );
+        if (!mapping) continue;
+        const material = (await this.parser.getDependency(
+          "material",
+          mapping.material,
+        )).clone();
+        if (generation !== this.generation) {
+          material.dispose();
+          for (const assignment of assignments) assignment.material.dispose();
+          return false;
+        }
+        assignments.push({ mesh, material });
       }
-      assignments.push({ mesh, material });
+    } catch (error) {
+      for (const assignment of assignments) assignment.material.dispose();
+      throw error;
     }
 
     if (assignments.length === 0) {

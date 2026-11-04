@@ -47,7 +47,9 @@ test.describe("Customer authentication", () => {
     await page.getByLabel("Full name").fill("New Customer");
     await page.getByLabel("Email address").fill(email);
     await page.getByLabel("Password", { exact: true }).fill("password 123");
-    await page.getByLabel("Confirm password").fill("password 123");
+    await page
+      .getByLabel("Confirm password", { exact: true })
+      .fill("password 123");
     await page.getByRole("button", { name: "Create account", exact: true }).click();
 
     await expect(page).toHaveURL("/account");
@@ -62,7 +64,9 @@ test.describe("Customer authentication", () => {
     await page.getByLabel("Full name").fill("Duplicate Customer");
     await page.getByLabel("Email address").fill("demo-customer@example.com");
     await page.getByLabel("Password", { exact: true }).fill("password 123");
-    await page.getByLabel("Confirm password").fill("password 123");
+    await page
+      .getByLabel("Confirm password", { exact: true })
+      .fill("password 123");
     await page.getByRole("button", { name: "Create account", exact: true }).click();
 
     await expect(page.getByLabel("Email address")).toHaveAttribute(

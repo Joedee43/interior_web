@@ -1,23 +1,22 @@
 # Project status — interior_web
 
-**Updated:** 2026-11-04 · **Branch:** `phase-4` · **Backend contract:** `/v1`,
+**Updated:** 2026-11-04 · **Branch:** `phase-5` · **Backend contract:** `/v1`,
 OpenAPI 1.0.0
 
 ## Current phase
 
-Phase 4 is complete on `phase-4` and awaiting merge approval. It delivers:
+Phase 5 is complete on `phase-5` and awaiting merge approval. It delivers:
 
-- Customer registration, login and logout through same-origin browser requests, so the Go API's HttpOnly session cookie reaches the browser unchanged.
-- Strict normalization of the complete `/v1/auth/me` account contract, including user identity and company memberships. Only a 401 is treated as signed out; malformed responses and other failures remain errors.
-- Request-deduplicated authenticated server fetching that forwards the incoming cookie and preserves backend request IDs.
-- A stable TanStack Query provider for interactive authenticated state. Login and registration replace prior user-scoped cache, logout clears it, and any authenticated query or mutation receiving a 401 clears the cached account.
-- Backend-matching React Hook Form and Zod validation: names and emails are normalized, passwords remain exact and use the backend's 12–128 Unicode-character limits, and registration confirms the password locally.
-- Field-level handling for `validation_failed` and `email_taken`, generic invalid-credential copy, explicit rate-limit copy, and real request IDs for unexpected failures.
-- Dynamic, no-index `/login` and `/register` routes. Safe `next` paths preserve local queries/fragments while rejecting absolute URLs, scheme-relative paths, backslashes and auth loops; `/account` is the default.
-- Server-validated protection for `/account`. A missing or expired session redirects to `/login?next=/account`; non-401 API failures render recovery UI with the backend request ID.
-- Authenticated header states for loading, signed out, signed in, logout and account-service failure. Failure never masquerades as signed out.
-- A protected account summary with name, email, creation date and active company memberships as read-only names and roles. Seller/admin navigation and unavailable account actions are not exposed.
-- Password change, password reset, logout-all, account editing and seller/admin UI remain deferred.
+- An accessible Photos/3D media viewer that preserves the Phase 3 gallery and lightbox. Desktop activates 3D after hydration; mobile does not request the GLB until the customer selects 3D.
+- Exact pins for `three@0.187.0`, `@react-three/fiber@9.8.2` and `@react-three/drei@10.7.9`.
+- Demand-driven rendering with DPR capped at 2, neutral lighting and floor, bounded manual orbit/zoom, pan disabled, usage instructions and reset view.
+- Manual `KHR_materials_variants` processing using loader extension metadata and parser material dependencies. Backend SKUs and material keys are checked against the media contract, KHR names are exact and case-sensitive, and non-configurable models retain their original materials.
+- URL-driven preview synchronization through the same variant resolver as the configurator, including valid unavailable deep links. Changing grey/blue finishes reuses the cached GLB.
+- Skeleton-safe scene clones, preview-owned material clones, last-selection-wins asynchronous updates, original-material restoration and owned-resource cleanup without disposing shared loader geometry or textures.
+- Pivot normalization that centres X/Z and grounds Y without resizing. Development checks compare X→width, Z→depth and Y→height in metres and warn once only above a 5% mismatch.
+- Isolated recovery for missing WebGL2, GLB loading/parsing errors, invalid preview contracts and WebGL context loss. Product imagery, options, pricing and information remain available, and failed loader entries can be cleared and retried.
+- A valid binary mock GLB with exact mock SKUs/materials, a deliberately broken model fixture, and isolated Playwright build output so browser tests can start alongside another local Next development process.
+- Room rendering, placement, collision detection, editor state and Zustand remain deferred to later phases.
 
 Verification completed on 2026-11-04:
 
@@ -25,19 +24,19 @@ Verification completed on 2026-11-04:
 - Backend OpenAPI types match contract (`npm run api:check`).
 - Strict lint (`npm run lint`) passes with 0 warnings.
 - TypeScript (`npm run typecheck`) passes with 0 errors.
-- Vitest unit and component tests (132 tests across 30 test files) all pass.
+- Vitest unit and component tests (152 tests across 35 test files) all pass.
 - Production build (`npm run build`) compiles successfully; `/login`, `/register` and `/account` are request-time routes while public routes retain their existing static/partial-prerender behavior.
-- Playwright E2E tests (50 tests across desktop Chromium and mobile Pixel 7) all pass from a standalone development-server startup.
+- Playwright E2E tests pass from a standalone development-server startup: 56 pass and 2 intentional platform-specific cases skip across desktop Chromium and mobile Pixel 7.
 - Production dependency audit (`npm audit --omit=dev`) found 0 vulnerabilities.
-- Manual verification against the running Go API confirmed seeded-customer login (200), protected account rendering and session persistence (200), logout (204), and the subsequent `/account` redirect to `/login?next=/account` (307).
+- Manual verification against the running Go API confirmed the seeded `addis-lounge-chair` renders `DEMO-CHAIR-GREY` and `DEMO-CHAIR-BLUE`, orbit/zoom/reset controls remain active, and the exact 0.8 × 0.8 × 0.9 metre GLB produces no dimension warning. The seeded `oslo-3-seat-sofa` remains image-only with no 3D tab.
 
 ## Accepted delivery phases
 
 1. Foundation and API boundary (Complete).
 2. Public catalog (Complete on `main`).
 3. Product detail and variant resolution (Complete on `main`).
-4. Authentication and protected layouts (Complete on `phase-4`).
-5. Three.js product preview and KHR material variants.
+4. Authentication and protected layouts (Complete on `main`).
+5. Three.js product preview and KHR material variants (Complete on `phase-5`).
 6. Design creation/list/read-only room rendering.
 7. Interactive editor and auto-save.
 8. Estimates and quote submission.

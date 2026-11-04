@@ -1,8 +1,8 @@
 # interior_web
 
 Customer frontend for the Interior furniture platform. It uses Next.js App
-Router, strict TypeScript, Tailwind CSS and Radix UI. Three.js support arrives
-in the dedicated product-preview phase.
+Router, strict TypeScript, Tailwind CSS, Radix UI and a demand-rendered
+React Three Fiber product preview.
 
 The Go API lives in the sibling `interior_api` repository. Browser requests
 use same-origin `/v1/*` paths; Next.js rewrites them to `API_INTERNAL_URL`.
@@ -50,9 +50,19 @@ Playwright needs a local browser once: `npx playwright install chromium`.
   with credentials.
 - Server API calls forward the cookie, omit Origin, validate one client IP from
   a trusted platform header and overwrite both forwarding headers.
-- Money remains integer minor units and dimensions remain millimetres outside
-  the future Three.js rendering boundary.
+- Money remains integer minor units. Catalog dimensions remain millimetres and
+  are converted to metres only at the Three.js rendering boundary; models are
+  never resized to force a match.
 - Generated API types are never edited manually.
+
+## Product 3D previews
+
+Products with a GLB expose accessible Photos and 3D tabs. Desktop activates 3D
+after hydration; mobile waits for an explicit customer selection before it
+downloads the model. Preview materials use exact, case-sensitive
+`KHR_materials_variants` names matching backend variant SKUs. Orbit, zoom and
+reset are manual. WebGL, model and contract failures fall back to product
+imagery without blocking configuration, pricing or product information.
 
 See the backend's `docs/FRONTEND_HANDOFF.md` for the complete cookie, proxy,
 OpenAPI, coordinate, GLB and versioning contract.
