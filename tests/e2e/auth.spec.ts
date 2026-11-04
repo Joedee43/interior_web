@@ -7,7 +7,7 @@ async function signIn(
 ) {
   await page.goto("/login");
   await page.getByLabel("Email address").fill(email);
-  await page.getByLabel("Password").fill(password);
+  await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 }
 
@@ -94,7 +94,7 @@ test.describe("Customer authentication", () => {
   test("rejects an external return URL", async ({ page }) => {
     await page.goto("/login?next=https%3A%2F%2Fevil.example%2Fsteal");
     await page.getByLabel("Email address").fill("demo-customer@example.com");
-    await page.getByLabel("Password").fill("customer password 1");
+    await page.getByLabel("Password", { exact: true }).fill("customer password 1");
     await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page).toHaveURL("/account");
   });
@@ -114,6 +114,23 @@ test.describe("Customer authentication", () => {
       page.getByRole("heading", { name: "Unable to check your account" }),
     ).toBeVisible();
     await expect(page.getByText(/mock-auth-me-500/)).toBeVisible();
+  });
+
+  test("toggles password visibility between masked and plain text", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+
+    const passwordInput = page.getByLabel("Password", { exact: true });
+    await passwordInput.fill("secret-password");
+    await expect(passwordInput).toHaveAttribute("type", "password");
+
+    const toggleBtn = page.getByTestId("password-toggle-password");
+    await toggleBtn.click();
+    await expect(passwordInput).toHaveAttribute("type", "text");
+
+    await toggleBtn.click();
+    await expect(passwordInput).toHaveAttribute("type", "password");
   });
 });
 
