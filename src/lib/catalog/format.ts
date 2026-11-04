@@ -12,8 +12,8 @@ export function formatMoney(
   currency: string = "ETB",
 ): string {
   const normCurrency = (currency || "ETB").trim().toUpperCase();
-  const fractionDigits = getCurrencyFractionDigits(normCurrency);
-  const majorAmount = amountMinor / Math.pow(10, fractionDigits);
+  const fractionDigits = currencyFractionDigits(normCurrency);
+  const majorAmount = minorToMajor(amountMinor, normCurrency);
 
   return new Intl.NumberFormat("en-ET", {
     style: "currency",
@@ -65,7 +65,11 @@ export function formatWeight(weightG?: number | null): string | null {
   return `${weightG} g`;
 }
 
-function getCurrencyFractionDigits(currency: string): number {
+export function minorToMajor(amountMinor: number, currency: string): number {
+  return amountMinor / 10 ** currencyFractionDigits(currency);
+}
+
+export function currencyFractionDigits(currency: string): number {
   try {
     const formatter = new Intl.NumberFormat("en-ET", {
       style: "currency",

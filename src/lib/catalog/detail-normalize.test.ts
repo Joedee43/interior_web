@@ -1,299 +1,272 @@
 import { describe, expect, it } from "vitest";
 
+import { CatalogContractError } from "./normalize";
 import { normalizeProductDetail } from "./detail-normalize";
 
-const validBase = {
+const validProduct = {
   id: "prod-1",
   slug: "addis-chair",
   name: "Addis Chair",
   description: "A solid handcrafted chair.",
-  category: {
-    id: "cat-1",
-    slug: "chairs",
-    name: "Chairs",
-  },
-  company: {
-    id: "co-1",
-    slug: "addis-craft",
-    name: "Addis Craft",
-  },
-  price: {
-    amount_minor: 450000,
-    currency: "ETB",
-  },
-  dimensions: {
-    width_mm: 600,
-    depth_mm: 650,
-    height_mm: 850,
-  },
-  weight_g: 8500,
+  category: { slug: "chairs", name: "Chairs" },
+  company: { slug: "addis-craft", name: "Addis Craft" },
+  price: { amount_minor: 450_000, currency: "ETB" },
+  dimensions: { width_mm: 600, depth_mm: 650, height_mm: 850 },
+  weight_g: 8_500,
   published_at: "2026-01-01T00:00:00Z",
-  primary_image_url: "https://example.com/img1.jpg",
+  primary_image_url: "/v1/media/img-1",
   images: [
     {
       id: "img-2",
-      url: "https://example.com/img2.jpg",
+      kind: "image",
+      url: "/v1/media/img-2",
+      content_type: "image/webp",
+      size_bytes: 2_048,
+      width: 800,
+      height: 600,
+      alt_text: "Side view",
       position: 1,
       is_primary: false,
     },
     {
       id: "img-1",
-      url: "https://example.com/img1.jpg",
+      kind: "image",
+      url: "/v1/media/img-1",
+      content_type: "image/jpeg",
+      size_bytes: 1_024,
+      width: 800,
+      height: 600,
+      alt_text: "Front view",
       position: 2,
       is_primary: true,
     },
   ],
   model: {
-    id: "mod-1",
-    url: "https://example.com/model.glb",
-    size_bytes: 1024,
-    materials: ["wood", "fabric"],
-    variants: ["grey", "blue"],
+    id: "model-1",
+    kind: "model",
+    url: "/v1/media/model-1",
+    content_type: "model/gltf-binary",
+    size_bytes: 4_096,
+    position: 0,
+    materials: ["fabric_grey", "fabric_blue"],
+    variants: ["CHAIR-GREY", "CHAIR-BLUE"],
   },
   options: [
     {
-      id: "opt-1",
-      name: "Color",
-      position: 1,
+      id: "option-colour",
+      name: "Colour",
+      position: 0,
       values: [
-        { id: "val-2", name: "Blue", position: 2, swatch_hex: "#0000ff" },
-        { id: "val-1", name: "Grey", position: 1, swatch_hex: "#808080" },
+        {
+          id: "value-blue",
+          name: "Blue",
+          position: 1,
+          swatch_hex: "#0000FF",
+          material_key: "fabric_blue",
+        },
+        {
+          id: "value-grey",
+          name: "Grey",
+          position: 0,
+          swatch_hex: "#808080",
+          material_key: "fabric_grey",
+        },
       ],
     },
   ],
   variants: [
     {
-      id: "var-2",
+      id: "variant-blue",
       sku: "CHAIR-BLUE",
-      price: { amount_minor: 480000, currency: "ETB" },
+      price: { amount_minor: 480_000, currency: "ETB" },
       available: false,
-      position: 2,
-      options: { Color: "Blue" },
-      value_ids: ["val-2"],
+      position: 1,
+      options: { Colour: "Blue" },
+      value_ids: ["value-blue"],
     },
     {
-      id: "var-1",
+      id: "variant-grey",
       sku: "CHAIR-GREY",
-      price: { amount_minor: 450000, currency: "ETB" },
+      price: { amount_minor: 450_000, currency: "ETB" },
       available: true,
-      position: 1,
-      options: { Color: "Grey" },
-      value_ids: ["val-1"],
+      position: 0,
+      options: { Colour: "Grey" },
+      value_ids: ["value-grey"],
     },
   ],
 };
 
-describe("normalizeProductDetail", () => {
-  it("normalizes a valid product with ordered media, options, and variants", () => {
-    const result = normalizeProductDetail(validBase);
-    expect(result).not.toBeNull();
-    if (!result) return;
+function rejects(value: unknown) {
+  expect(() => normalizeProductDetail(value)).toThrow(CatalogContractError);
+}
 
-    expect(result.id).toBe("prod-1");
-    expect(result.slug).toBe("addis-chair");
-    expect(result.name).toBe("Addis Chair");
-    expect(result.company.name).toBe("Addis Craft");
+describe("normalizeProductDetail", () => {
+  it("strictly normalizes and orders a complete product", () => {
+    const result = normalizeProductDetail(validProduct);
+
     expect(result.formattedBasePrice.replace(/\u00a0/g, " ")).toBe(
       "ETB 4,500.00",
     );
-    expect(result.formattedDimensions).toBe("600 × 650 × 850 mm");
     expect(result.formattedWeight).toBe("8.5 kg");
-    expect(result.hasOptions).toBe(true);
-
-    // Images sorted: primary first
-    expect(result.images[0]?.id).toBe("img-1");
-    expect(result.images[0]?.isPrimary).toBe(true);
-    expect(result.images[1]?.id).toBe("img-2");
-
-    // Option values sorted by position
-    expect(result.options[0]?.values[0]?.id).toBe("val-1");
-    expect(result.options[0]?.values[1]?.id).toBe("val-2");
-
-    // Variants sorted by position
-    expect(result.variants[0]?.sku).toBe("CHAIR-GREY");
-    expect(result.variants[0]?.available).toBe(true);
-    expect(result.variants[1]?.sku).toBe("CHAIR-BLUE");
-    expect(result.variants[1]?.available).toBe(false);
-
-    // Model normalized
-    expect(result.model?.id).toBe("mod-1");
-    expect(result.model?.materials).toEqual(["wood", "fabric"]);
+    expect(result.images.map((image) => image.id)).toEqual(["img-1", "img-2"]);
+    expect(result.options[0]?.values.map((value) => value.id)).toEqual([
+      "value-grey",
+      "value-blue",
+    ]);
+    expect(result.variants.map((variant) => variant.sku)).toEqual([
+      "CHAIR-GREY",
+      "CHAIR-BLUE",
+    ]);
+    expect(result.model?.contentType).toBe("model/gltf-binary");
   });
 
-  it("normalizes a non-configurable product without options or variants", () => {
-    const nonConfigurable = {
-      ...validBase,
+  it("accepts a complete non-configurable product", () => {
+    const result = normalizeProductDetail({
+      ...validProduct,
+      model: null,
       options: [],
       variants: [],
-      model: null,
       weight_g: null,
-    };
-    const result = normalizeProductDetail(nonConfigurable);
-    expect(result).not.toBeNull();
-    if (!result) return;
-
+    });
     expect(result.hasOptions).toBe(false);
-    expect(result.options).toHaveLength(0);
-    expect(result.variants).toHaveLength(0);
-    expect(result.model).toBeNull();
     expect(result.formattedWeight).toBeNull();
   });
 
-  it("rejects when required top-level fields are missing or empty", () => {
-    expect(normalizeProductDetail(null)).toBeNull();
-    expect(normalizeProductDetail({})).toBeNull();
-    expect(normalizeProductDetail({ ...validBase, id: "" })).toBeNull();
-    expect(normalizeProductDetail({ ...validBase, slug: "" })).toBeNull();
-    expect(normalizeProductDetail({ ...validBase, name: "" })).toBeNull();
-    expect(normalizeProductDetail({ ...validBase, category: null })).toBeNull();
-    expect(
-      normalizeProductDetail({
-        ...validBase,
-        company: { slug: "", name: "" },
-      }),
-    ).toBeNull();
-    expect(
-      normalizeProductDetail({
-        ...validBase,
-        price: { amount_minor: -1, currency: "ETB" },
-      }),
-    ).toBeNull();
-    expect(
-      normalizeProductDetail({
-        ...validBase,
-        dimensions: { width_mm: 500 }, // missing depth and height
-      }),
-    ).toBeNull();
+  it("requires every top-level collection and nullable field", () => {
+    rejects(null);
+    rejects({ ...validProduct, images: undefined });
+    rejects({ ...validProduct, model: undefined });
+    rejects({ ...validProduct, options: undefined });
+    rejects({ ...validProduct, variants: undefined });
+    rejects({ ...validProduct, weight_g: undefined });
+    rejects({ ...validProduct, published_at: undefined });
+    rejects({ ...validProduct, primary_image_url: undefined });
+    rejects({ ...validProduct, description: undefined });
   });
 
-  it("rejects invalid media objects missing id or url", () => {
-    expect(
-      normalizeProductDetail({
-        ...validBase,
-        images: [{ id: "", url: "https://example.com/img.jpg" }],
-      }),
-    ).toBeNull();
-
-    expect(
-      normalizeProductDetail({
-        ...validBase,
-        images: [{ id: "img-1", url: "" }],
-      }),
-    ).toBeNull();
-
-    expect(
-      normalizeProductDetail({
-        ...validBase,
-        model: { id: "", url: "https://example.com/mod.glb" },
-      }),
-    ).toBeNull();
-  });
-
-  it("rejects variants with unknown value IDs", () => {
-    const invalid = {
-      ...validBase,
+  it("rejects invalid numbers, currency and availability", () => {
+    rejects({ ...validProduct, weight_g: 1.5 });
+    rejects({ ...validProduct, dimensions: { width_mm: 0, depth_mm: 1, height_mm: 1 } });
+    rejects({ ...validProduct, price: { amount_minor: 1, currency: "etb" } });
+    rejects({
+      ...validProduct,
+      variants: [{ ...validProduct.variants[1], available: "yes" }],
+    });
+    rejects({
+      ...validProduct,
       variants: [
         {
-          id: "var-1",
-          sku: "CHAIR-UNKNOWN",
-          price: { amount_minor: 450000, currency: "ETB" },
-          available: true,
-          position: 1,
-          value_ids: ["unknown-val-id"],
+          ...validProduct.variants[1],
+          price: { amount_minor: 450_000, currency: "USD" },
         },
       ],
-    };
-    expect(normalizeProductDetail(invalid)).toBeNull();
+    });
   });
 
-  it("rejects incomplete variant combinations", () => {
-    // 2 options defined, but variant only provides 1 value
-    const twoOptions = {
-      ...validBase,
+  it("rejects malformed media and primary-image mismatches", () => {
+    rejects({
+      ...validProduct,
+      images: [{ ...validProduct.images[0], kind: "model" }],
+    });
+    rejects({
+      ...validProduct,
+      images: [validProduct.images[0], { ...validProduct.images[0] }],
+    });
+    rejects({ ...validProduct, primary_image_url: "/v1/media/missing" });
+    rejects({
+      ...validProduct,
+      model: { ...validProduct.model, content_type: "application/json" },
+    });
+    rejects({
+      ...validProduct,
+      images: [{ ...validProduct.images[0], is_primary: undefined }],
+    });
+    rejects({
+      ...validProduct,
+      model: { ...validProduct.model, materials: undefined },
+    });
+  });
+
+  it("rejects duplicate option, value, variant and SKU identities", () => {
+    rejects({
+      ...validProduct,
+      options: [validProduct.options[0]!, { ...validProduct.options[0]! }],
+    });
+    rejects({
+      ...validProduct,
       options: [
         {
-          id: "opt-1",
-          name: "Color",
-          position: 1,
-          values: [{ id: "val-1", name: "Grey", position: 1 }],
-        },
-        {
-          id: "opt-2",
-          name: "Material",
-          position: 2,
-          values: [{ id: "val-2", name: "Oak", position: 1 }],
+          ...validProduct.options[0]!,
+          values: [
+            validProduct.options[0]!.values[0]!,
+            { ...validProduct.options[0]!.values[0]! },
+          ],
         },
       ],
+    });
+    rejects({
+      ...validProduct,
       variants: [
-        {
-          id: "var-1",
-          sku: "CHAIR-INCOMPLETE",
-          price: { amount_minor: 450000, currency: "ETB" },
-          available: true,
-          position: 1,
-          value_ids: ["val-1"], // missing val-2 for opt-2
-        },
+        validProduct.variants[1]!,
+        { ...validProduct.variants[0]!, id: validProduct.variants[1]!.id },
       ],
-    };
-    expect(normalizeProductDetail(twoOptions)).toBeNull();
+    });
+    rejects({
+      ...validProduct,
+      variants: [
+        validProduct.variants[1]!,
+        { ...validProduct.variants[0]!, sku: validProduct.variants[1]!.sku },
+      ],
+    });
   });
 
-  it("rejects duplicate variant combinations", () => {
-    const duplicate = {
-      ...validBase,
+  it("rejects unknown, incomplete and duplicate combinations", () => {
+    rejects({
+      ...validProduct,
       variants: [
+        { ...validProduct.variants[1]!, value_ids: ["unknown-value"] },
+      ],
+    });
+    rejects({
+      ...validProduct,
+      variants: [{ ...validProduct.variants[1]!, value_ids: [] }],
+    });
+    rejects({
+      ...validProduct,
+      variants: [
+        validProduct.variants[1]!,
         {
-          id: "var-1",
-          sku: "CHAIR-GREY-1",
-          price: { amount_minor: 450000, currency: "ETB" },
-          available: true,
-          position: 1,
-          value_ids: ["val-1"],
-        },
-        {
-          id: "var-2",
-          sku: "CHAIR-GREY-2",
-          price: { amount_minor: 460000, currency: "ETB" },
-          available: true,
-          position: 2,
-          value_ids: ["val-1"], // duplicate combination!
+          ...validProduct.variants[0]!,
+          value_ids: validProduct.variants[1]!.value_ids,
+          options: validProduct.variants[1]!.options,
         },
       ],
-    };
-    expect(normalizeProductDetail(duplicate)).toBeNull();
+    });
   });
 
-  it("rejects products with options but no variants, or variants without options", () => {
-    expect(
-      normalizeProductDetail({
-        ...validBase,
-        options: [
-          {
-            id: "opt-1",
-            name: "Color",
-            position: 1,
-            values: [{ id: "val-1", name: "Grey", position: 1 }],
-          },
-        ],
-        variants: [],
-      }),
-    ).toBeNull();
+  it("rejects option display maps that disagree with selected IDs", () => {
+    rejects({
+      ...validProduct,
+      variants: [
+        {
+          ...validProduct.variants[1],
+          options: { Colour: "Blue" },
+        },
+      ],
+    });
+    rejects({
+      ...validProduct,
+      variants: [
+        {
+          ...validProduct.variants[1],
+          options: { Colour: "Grey", Extra: "value" },
+        },
+      ],
+    });
+  });
 
-    expect(
-      normalizeProductDetail({
-        ...validBase,
-        options: [],
-        variants: [
-          {
-            id: "var-1",
-            sku: "CHAIR-ALONE",
-            price: { amount_minor: 450000, currency: "ETB" },
-            available: true,
-            position: 1,
-            value_ids: [],
-          },
-        ],
-      }),
-    ).toBeNull();
+  it("requires options and variants to appear together", () => {
+    rejects({ ...validProduct, variants: [] });
+    rejects({ ...validProduct, options: [] });
   });
 });

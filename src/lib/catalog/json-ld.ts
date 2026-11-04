@@ -1,4 +1,5 @@
 import type { ProductDetail } from "./detail-types";
+import { minorToMajor } from "./format";
 
 /**
  * Builds schema.org Product JSON-LD structured data.
@@ -9,9 +10,12 @@ export function buildProductJsonLd(
   product: ProductDetail,
   canonicalUrl: string,
 ): Record<string, unknown> {
-  const images = product.images.map((img) => img.url);
+  const images = product.images.map((img) =>
+    new URL(img.url, canonicalUrl).toString(),
+  );
   if (product.primaryImageUrl && !images.includes(product.primaryImageUrl)) {
-    images.unshift(product.primaryImageUrl);
+    const primaryImage = new URL(product.primaryImageUrl, canonicalUrl).toString();
+    if (!images.includes(primaryImage)) images.unshift(primaryImage);
   }
 
   const baseData: Record<string, unknown> = {
@@ -30,7 +34,10 @@ export function buildProductJsonLd(
 
   if (!product.hasOptions || product.variants.length === 0) {
     // Single Offer for non-variant products
-    const majorPrice = product.basePrice.amount_minor / 100;
+    const majorPrice = minorToMajor(
+      product.basePrice.amount_minor,
+      product.basePrice.currency,
+    );
     baseData.offers = {
       "@type": "Offer",
       price: majorPrice,
@@ -43,10 +50,23 @@ export function buildProductJsonLd(
 
   // AggregateOffer for configurable products
   const availableVariants = product.variants.filter((v) => v.available);
-  const targetVariants =
-    availableVariants.length > 0 ? availableVariants : product.variants;
+  if (availableVariants.length === 0) {
+    baseData.offers = {
+      "@type": "Offer",
+      price: minorToMajor(
+        product.basePrice.amount_minor,
+        product.basePrice.currency,
+      ),
+      priceCurrency: product.basePrice.currency,
+      availability: "https://schema.org/OutOfStock",
+      url: canonicalUrl,
+    };
+    return baseData;
+  }
 
-  const prices = targetVariants.map((v) => v.price.amount_minor / 100);
+  const prices = availableVariants.map((variant) =>
+    minorToMajor(variant.price.amount_minor, variant.price.currency),
+  );
   const lowPrice = Math.min(...prices);
   const highPrice = Math.max(...prices);
   const currency = product.basePrice.currency;
@@ -56,11 +76,11 @@ export function buildProductJsonLd(
     priceCurrency: currency,
     lowPrice,
     highPrice,
-    offerCount: targetVariants.length,
-    offers: targetVariants.map((v) => ({
+    offerCount: availableVariants.length,
+    offers: availableVariants.map((v) => ({
       "@type": "Offer",
       sku: v.sku,
-      price: v.price.amount_minor / 100,
+      price: minorToMajor(v.price.amount_minor, v.price.currency),
       priceCurrency: v.price.currency,
       availability: v.available
         ? "https://schema.org/InStock"

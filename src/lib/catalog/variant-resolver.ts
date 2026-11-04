@@ -27,7 +27,7 @@ export function resolveVariant(
     };
   }
 
-  const cleanSku = requestedSku?.trim();
+  const cleanSku = requestedSku;
   let selectedVariant: ProductVariant | null = null;
   let isExactMatch = false;
   let isCanonical = true;
@@ -119,18 +119,17 @@ export function selectOptionValue(
     return null;
   }
 
+  if (currentVariant?.valueIds.includes(targetValueId)) {
+    return currentVariant;
+  }
+
   // Look for available variants containing the target value
-  let candidates = product.variants.filter(
+  const candidates = product.variants.filter(
     (v) => v.available && v.valueIds.includes(targetValueId),
   );
 
-  // If no available variants exist, fall back to any variant containing the target value
-  if (candidates.length === 0) {
-    candidates = product.variants.filter((v) =>
-      v.valueIds.includes(targetValueId),
-    );
-  }
-
+  // Unavailable values are not ordinary selection targets. The one exception
+  // is the already-selected value of an explicitly requested unavailable SKU.
   if (candidates.length === 0) {
     return currentVariant;
   }

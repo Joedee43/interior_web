@@ -34,12 +34,7 @@ export const getProductDetail = cache(
         cache: "no-store",
       });
 
-      const normalized = normalizeProductDetail(raw);
-      if (!normalized) {
-        throw new Error("Invalid product detail response payload");
-      }
-
-      return normalized;
+      return normalizeProductDetail(raw);
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         return null;

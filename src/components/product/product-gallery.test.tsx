@@ -9,6 +9,8 @@ const mockImages: ProductMediaImage[] = [
   {
     id: "img-1",
     url: "/media/chair-front.jpg",
+    contentType: "image/jpeg",
+    sizeBytes: 1_024,
     altText: "Front view of chair",
     position: 1,
     isPrimary: true,
@@ -16,6 +18,8 @@ const mockImages: ProductMediaImage[] = [
   {
     id: "img-2",
     url: "/media/chair-side.jpg",
+    contentType: "image/jpeg",
+    sizeBytes: 1_024,
     altText: "Side view of chair",
     position: 2,
     isPrimary: false,

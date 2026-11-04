@@ -7,6 +7,8 @@ import type {
 export interface ProductMediaImage {
   id: string;
   url: string;
+  contentType: "image/jpeg" | "image/png" | "image/webp";
+  sizeBytes: number;
   altText: string;
   width?: number;
   height?: number;
@@ -17,7 +19,9 @@ export interface ProductMediaImage {
 export interface ProductMediaModel {
   id: string;
   url: string;
-  sizeBytes?: number;
+  contentType: "model/gltf-binary";
+  sizeBytes: number;
+  position: number;
   materials: string[];
   variants: string[];
 }

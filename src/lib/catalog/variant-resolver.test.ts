@@ -126,6 +126,10 @@ describe("resolveVariant", () => {
     expect(lower.selectedVariant?.sku).toBe("CHAIR-GREY-OAK");
     expect(lower.isExactMatch).toBe(false);
     expect(lower.isCanonical).toBe(false);
+
+    const padded = resolveVariant(mockProduct, " CHAIR-BLUE-STEEL ");
+    expect(padded.selectedVariant?.sku).toBe("CHAIR-GREY-OAK");
+    expect(padded.isCanonical).toBe(false);
   });
 
   it("keeps valid unavailable SKU selected and marked unavailable", () => {
@@ -222,8 +226,7 @@ describe("selectOptionValue", () => {
     expect(next?.position).toBe(3); // CHAIR-BLUE-OAK is pos 3, CHAIR-BLUE-STEEL is pos 4
   });
 
-  it("falls back to unavailable variant containing target value if no available variant exists", () => {
-    // Make only steel variant unavailable
+  it("does not select an unavailable value through an ordinary option change", () => {
     const productUnavailable: ProductDetail = {
       ...mockProduct,
       variants: [
@@ -234,6 +237,11 @@ describe("selectOptionValue", () => {
       ],
     };
     const next = selectOptionValue(productUnavailable, null, "val-steel");
-    expect(next?.sku).toBe("CHAIR-GREY-STEEL");
+    expect(next).toBeNull();
+  });
+
+  it("preserves the current unavailable selection when its selected value is activated", () => {
+    const current = mockVariants[1]!;
+    expect(selectOptionValue(mockProduct, current, "val-steel")).toBe(current);
   });
 });
