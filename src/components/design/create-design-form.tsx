@@ -72,7 +72,7 @@ export function CreateDesignForm({ templates }: { templates: RoomTemplate[] }) {
         </div>
       )}
       {mutation.isError && <div role="alert" className="rounded-xl bg-terracotta/10 p-4 text-sm text-terracotta"><p>{mutation.error instanceof ApiError && mutation.error.code === "validation_failed" ? "Check the highlighted room details." : "The design could not be created. Try again."}</p>{requestId && <p className="mt-1 font-mono text-xs">Request ID: {requestId}</p>}</div>}
-      <Button type="submit" size="lg" disabled={mutation.isPending}>{mutation.isPending ? "Creating room…" : "Create design"}</Button>
+      <Button type="submit" size="lg" disabled={mutation.isPending} className="relative z-10">{mutation.isPending ? "Creating room…" : "Create design"}</Button>
     </form>
   );
 }

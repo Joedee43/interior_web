@@ -64,6 +64,18 @@ downloads the model. Preview materials use exact, case-sensitive
 reset are manual. WebGL, model and contract failures fall back to product
 imagery without blocking configuration, pricing or product information.
 
+## Saved room designs
+
+Authenticated customers can list paginated saved designs, create a room from a
+published template or exact metre-based custom dimensions, and open a read-only
+room at `/designs/[designID]`. The room renderer keeps API data in millimetres
+and converts only at the Three.js boundary: X points east, Z points south, Y
+points up, and positive rotation is counter-clockwise from above. Desktop loads
+the demand-rendered room automatically; mobile keeps GLBs deferred behind
+“Load 3D room” and shows a lightweight floor plan first. Item-level model or
+variant failures use dimensionally correct placeholders without hiding room,
+furniture, availability, or estimate information.
+
 See the backend's `docs/FRONTEND_HANDOFF.md` for the complete cookie, proxy,
 OpenAPI, coordinate, GLB and versioning contract.
 

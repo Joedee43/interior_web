@@ -39,7 +39,7 @@ export function DesignList({ initialPage, templates }: { initialPage: DesignPage
           </li>
         ))}
       </ul>
-      {query.hasNextPage && <div className="mt-8 text-center"><Button variant="secondary" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>{query.isFetchingNextPage ? "Loading…" : "Load more designs"}</Button>{query.isFetchNextPageError && <p className="mt-3 text-sm text-terracotta" role="alert">The next page could not be loaded. Try again.</p>}</div>}
+      {query.hasNextPage && <div className="relative z-10 mt-8 text-center"><Button variant="secondary" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>{query.isFetchingNextPage ? "Loading…" : "Load more designs"}</Button>{query.isFetchNextPageError && <p className="mt-3 text-sm text-terracotta" role="alert">The next page could not be loaded. Try again.</p>}</div>}
     </div>
   );
 }

@@ -1,34 +1,33 @@
 # Project status — interior_web
 
-**Updated:** 2026-11-04 · **Branch:** `phase-5` · **Backend contract:** `/v1`,
+**Updated:** 2026-11-06 · **Branch:** `phase-6` · **Backend contract:** `/v1`,
 OpenAPI 1.0.0
 
 ## Current phase
 
-Phase 5 is complete on `phase-5` and awaiting merge approval. It delivers:
+Phase 6 is complete on `phase-6` and awaiting merge approval. It delivers:
 
-- An accessible Photos/3D media viewer that preserves the Phase 3 gallery and lightbox. Desktop activates 3D after hydration; mobile does not request the GLB until the customer selects 3D.
-- Exact pins for `three@0.187.0`, `@react-three/fiber@9.8.2` and `@react-three/drei@10.7.9`.
-- Demand-driven rendering with DPR capped at 2, neutral lighting and floor, bounded manual orbit/zoom, pan disabled, usage instructions and reset view.
-- Manual `KHR_materials_variants` processing using loader extension metadata and parser material dependencies. Backend SKUs and material keys are checked against the media contract, KHR names are exact and case-sensitive, and non-configurable models retain their original materials.
-- URL-driven preview synchronization through the same variant resolver as the configurator, including valid unavailable deep links. Changing grey/blue finishes reuses the cached GLB.
-- Skeleton-safe scene clones, preview-owned material clones, last-selection-wins asynchronous updates, original-material restoration and owned-resource cleanup without disposing shared loader geometry or textures.
-- Pivot normalization that centres X/Z and grounds Y without resizing. Development checks compare X→width, Z→depth and Y→height in metres and warn once only above a 5% mismatch.
-- Isolated recovery for missing WebGL2, GLB loading/parsing errors, invalid preview contracts and WebGL context loss. Product imagery, options, pricing and information remain available, and failed loader entries can be cleared and retried.
-- A valid binary mock GLB with exact mock SKUs/materials, a deliberately broken model fixture, and isolated Playwright build output so browser tests can start alongside another local Next development process.
-- Room rendering, placement, collision detection, editor state and Zustand remain deferred to later phases.
+- Strict room-template, design-summary and design-detail normalization, including UUIDs, dates, dimensions, finishes, openings, positions, rotations, prices, estimates, exact nullable variant SKUs and byte-for-byte cursor preservation.
+- Authenticated TanStack Query list/detail APIs under `designs` keys, server-provided initial data, real backend request IDs, strict ownership-aware 404 handling and automatic auth-cache clearing on 401.
+- Protected `/designs`, `/designs/new` and `/designs/[designID]` routes with preserved login return paths, newest-edited-first infinite pagination, signed-in navigation and account-page entry.
+- Published-template and custom-room creation with exact decimal metre-to-millimetre conversion, three-decimal precision, backend-aligned dimension limits, uppercase wall colours, basic floor finishes and duplicate-submission protection.
+- A read-only Three.js room using the north-west floor origin, X east, Z south and Y up. Saved positive rotations map directly to `rotation.y`, geometry is never resized, walls are segmented around doors/windows, and the camera fits the room with orbit, pan, zoom and reset controls.
+- Desktop automatic room loading and a mobile-first top-down plan that defers all room GLBs until the customer requests 3D.
+- Skeleton-safe cached model clones, exact case-sensitive KHR SKU application, original materials for non-configurable products, development dimension checks and item-level dimensioned placeholders for absent or broken models.
+- Accessible furniture, availability and position summaries plus current-price estimates grouped by seller and currency. Empty rooms remain valid and quote controls remain deferred.
+- A stateful mock API with templates, opaque pagination, creation, exact design SKU data, estimates, ownership 404s and request-ID error fixtures.
 
-Verification completed on 2026-11-04:
+Verification completed on 2026-11-06:
 
 - `git diff --check` passes.
 - Backend OpenAPI types match contract (`npm run api:check`).
 - Strict lint (`npm run lint`) passes with 0 warnings.
 - TypeScript (`npm run typecheck`) passes with 0 errors.
-- Vitest unit and component tests (152 tests across 35 test files) all pass.
-- Production build (`npm run build`) compiles successfully; `/login`, `/register` and `/account` are request-time routes while public routes retain their existing static/partial-prerender behavior.
-- Playwright E2E tests pass from a standalone development-server startup: 56 pass and 2 intentional platform-specific cases skip across desktop Chromium and mobile Pixel 7.
+- Vitest unit and component tests (171 tests across 41 test files) all pass.
+- Production build (`npm run build`) compiles successfully; protected design routes render at request time while design detail retains partial prerendering with request-time data.
+- Playwright E2E tests pass from a standalone development-server startup: 68 pass and 4 intentional platform-specific cases skip across desktop Chromium and mobile Pixel 7.
 - Production dependency audit (`npm audit --omit=dev`) found 0 vulnerabilities.
-- Manual verification against the running Go API confirmed the seeded `addis-lounge-chair` renders `DEMO-CHAIR-GREY` and `DEMO-CHAIR-BLUE`, orbit/zoom/reset controls remain active, and the exact 0.8 × 0.8 × 0.9 metre GLB produces no dimension warning. The seeded `oslo-3-seat-sofa` remains image-only with no 3D tab.
+- Manual browser verification against an isolated real Go API confirmed “My living room” loads its exact `DEMO-CHAIR-GREY` model at `(1600, 0, 1800)` mm with 30° rotation and no dimension warning.
 
 ## Accepted delivery phases
 
@@ -36,8 +35,8 @@ Verification completed on 2026-11-04:
 2. Public catalog (Complete on `main`).
 3. Product detail and variant resolution (Complete on `main`).
 4. Authentication and protected layouts (Complete on `main`).
-5. Three.js product preview and KHR material variants (Complete on `phase-5`).
-6. Design creation/list/read-only room rendering.
+5. Three.js product preview and KHR material variants (Complete on `main`).
+6. Design creation/list/read-only room rendering (Complete on `phase-6`).
 7. Interactive editor and auto-save.
 8. Estimates and quote submission.
 9. Customer quote management.

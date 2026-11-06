@@ -17,7 +17,7 @@ export function SiteHeader() {
           <span className="grid size-9 place-items-center rounded-full bg-ink text-sm font-semibold text-canvas">
             I
           </span>
-          <span className="font-serif text-xl tracking-[-0.03em]">Interior</span>
+          <span className="hidden font-serif text-xl tracking-[-0.03em] sm:inline">Interior</span>
         </Link>
 
         <nav
@@ -37,7 +37,7 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-3">
           <Button asChild variant="secondary" size="sm">
-            <Link href="/catalog">Browse Catalog</Link>
+            <Link href="/catalog" aria-label="Browse Catalog"><span className="sm:hidden">Catalog</span><span className="hidden sm:inline">Browse Catalog</span></Link>
           </Button>
           <AccountNav />
         </div>

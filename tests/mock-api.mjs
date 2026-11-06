@@ -181,10 +181,140 @@ const page2Products = [
   },
 ];
 
+const roomTemplates = [
+  {
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    slug: "home-office-3x4",
+    name: "Home office 3×4 m",
+    description: "A compact home office with one door and a window.",
+    room: { width_mm: 3000, depth_mm: 4000, height_mm: 2700 },
+    features: {
+      wall_color: "#F2EFE9",
+      floor: "oak",
+      openings: [
+        { type: "door", wall: "south", offset_mm: 300, width_mm: 900, height_mm: 2100, sill_mm: 0 },
+        { type: "window", wall: "north", offset_mm: 900, width_mm: 1200, height_mm: 1300, sill_mm: 900 },
+      ],
+    },
+    sort_order: 10,
+    updated_at: "2026-10-01T00:00:00Z",
+  },
+  {
+    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    slug: "living-room-5x6",
+    name: "Living room 5×6 m",
+    description: "An open living room with two windows.",
+    room: { width_mm: 5000, depth_mm: 6000, height_mm: 2800 },
+    features: { wall_color: "#FFFFFF", floor: "oak", openings: [] },
+    sort_order: 20,
+    updated_at: "2026-10-01T00:00:00Z",
+  },
+];
+
+function designSummary(design) {
+  return {
+    id: design.id,
+    name: design.name,
+    template_id: design.template_id,
+    room: design.room,
+    item_count: design.item_count,
+    created_at: design.created_at,
+    updated_at: design.updated_at,
+  };
+}
+
+function designDetail(design) {
+  return {
+    ...designSummary(design),
+    features: design.features,
+    items: design.items,
+    estimate: design.estimate,
+  };
+}
+
+function seededDesigns() {
+  const owner = demoAccount.user.email;
+  const main = {
+    owner,
+    id: "55555555-5555-4555-8555-555555555555",
+    name: "My living room",
+    template_id: roomTemplates[1].id,
+    room: roomTemplates[1].room,
+    item_count: 2,
+    created_at: "2026-10-20T10:00:00Z",
+    updated_at: "2026-11-04T10:00:00Z",
+    features: roomTemplates[1].features,
+    items: [{
+      id: "66666666-6666-4666-8666-666666666666",
+      position: { x_mm: 1600, y_mm: 0, z_mm: 1800 },
+      rotation_deg: 30,
+      available: true,
+      product: {
+        id: "77777777-7777-4777-8777-777777777777",
+        slug: "ergo-task-chair",
+        name: "Ergo Task Chair",
+        company_slug: "ergoseat",
+        company_name: "ErgoSeat",
+        variant_id: "88888888-8888-4888-8888-888888888888",
+        sku: "ERGO-GREY",
+        options: { Colour: "Grey" },
+        price: { amount_minor: 850000, currency: "ETB" },
+        dimensions: { width_mm: 650, depth_mm: 600, height_mm: 1100 },
+        primary_image_url: "/v1/media/img-chair",
+        model_url: "/v1/media/chair.glb",
+      },
+      updated_at: "2026-11-04T10:00:00Z",
+    }, {
+      id: "67676767-6767-4676-8676-676767676767",
+      position: { x_mm: 3300, y_mm: 0, z_mm: 2200 },
+      rotation_deg: 0,
+      available: false,
+      product: {
+        id: "78787878-7878-4787-8787-787878787878",
+        slug: "broken-side-table",
+        name: "Broken Side Table",
+        company_slug: "ergoseat",
+        company_name: "ErgoSeat",
+        variant_id: null,
+        sku: null,
+        options: {},
+        price: { amount_minor: 320000, currency: "ETB" },
+        dimensions: { width_mm: 500, depth_mm: 500, height_mm: 550 },
+        primary_image_url: null,
+        model_url: "/v1/media/broken.glb",
+      },
+      updated_at: "2026-11-04T10:00:00Z",
+    }],
+    estimate: {
+      note: "Estimate at current catalog prices for available items; not a quote.",
+      item_count: 2,
+      unavailable_count: 1,
+      totals: [{ company_slug: "ergoseat", company_name: "ErgoSeat", currency: "ETB", amount_minor: 850000, items: 1 }],
+    },
+  };
+  const extras = Array.from({ length: 20 }, (_, index) => ({
+    owner,
+    id: `90000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+    name: `Planning room ${index + 1}`,
+    template_id: roomTemplates[0].id,
+    room: roomTemplates[0].room,
+    item_count: 0,
+    created_at: "2026-10-01T00:00:00Z",
+    updated_at: `2026-10-${String(30 - index).padStart(2, "0")}T00:00:00Z`,
+    features: roomTemplates[0].features,
+    items: [],
+    estimate: { note: "Estimate at current catalog prices for available items; not a quote.", item_count: 0, unavailable_count: 0, totals: [] },
+  }));
+  return [main, ...extras];
+}
+
 export function createMockServer() {
   const accounts = new Map([[demoAccount.user.email, demoAccount]]);
   const sessions = new Map();
   let nextSession = 1;
+  let nextDesign = 1;
+  const designs = seededDesigns();
+  const designCursor = "  design+page==  ";
 
   function issueSession(res, account, mode = "normal") {
     const token = `mock-session-${nextSession++}`;
@@ -321,6 +451,93 @@ export function createMockServer() {
       );
       res.writeHead(204);
       res.end();
+      return;
+    }
+
+    if (url.pathname === "/v1/room-templates" && req.method === "GET") {
+      res.writeHead(200);
+      res.end(JSON.stringify({ templates: roomTemplates }));
+      return;
+    }
+
+    if (url.pathname === "/v1/designs" && req.method === "GET") {
+      const session = sessions.get(sessionToken(req));
+      if (!session) {
+        res.writeHead(401);
+        res.end(JSON.stringify(errorEnvelope("unauthenticated", "authentication required", "mock-designs-401")));
+        return;
+      }
+      const mine = designs.filter((design) => design.owner === session.account.user.email);
+      const cursor = url.searchParams.get("cursor");
+      if (cursor !== null && cursor !== designCursor) {
+        res.writeHead(400);
+        res.end(JSON.stringify(errorEnvelope("validation_failed", "validation failed", "mock-designs-400", { cursor: "is invalid" })));
+        return;
+      }
+      const page = cursor === designCursor ? mine.slice(20) : mine.slice(0, 20);
+      res.writeHead(200);
+      res.end(JSON.stringify({ designs: page.map(designSummary), next_cursor: cursor === null && mine.length > 20 ? designCursor : null }));
+      return;
+    }
+
+    if (url.pathname === "/v1/designs" && req.method === "POST") {
+      const session = sessions.get(sessionToken(req));
+      if (!session) {
+        res.writeHead(401);
+        res.end(JSON.stringify(errorEnvelope("unauthenticated", "authentication required", "mock-design-create-401")));
+        return;
+      }
+      const body = await readJson(req);
+      const name = typeof body.name === "string" ? body.name.trim() : "";
+      const template = roomTemplates.find((entry) => entry.slug === body.template);
+      const custom = Number.isInteger(body.width_mm) && Number.isInteger(body.depth_mm) && Number.isInteger(body.height_mm);
+      if (!name || (!template && !custom)) {
+        res.writeHead(400);
+        res.end(JSON.stringify(errorEnvelope("validation_failed", "validation failed", "mock-design-create-400", { ...(name ? {} : { name: "must be 1 to 100 characters" }), ...(!template && !custom ? { template: "choose a template or custom dimensions" } : {}) })));
+        return;
+      }
+      const id = `70000000-0000-4000-8000-${String(nextDesign++).padStart(12, "0")}`;
+      const now = new Date().toISOString();
+      const design = {
+        owner: session.account.user.email,
+        id,
+        name,
+        template_id: template?.id ?? null,
+        room: template?.room ?? { width_mm: body.width_mm, depth_mm: body.depth_mm, height_mm: body.height_mm },
+        item_count: 0,
+        created_at: now,
+        updated_at: now,
+        features: template?.features ?? { wall_color: body.features?.wall_color ?? "", floor: body.features?.floor ?? "", openings: [] },
+        items: [],
+        estimate: { note: "Estimate at current catalog prices for available items; not a quote.", item_count: 0, unavailable_count: 0, totals: [] },
+      };
+      designs.unshift(design);
+      res.writeHead(201);
+      res.end(JSON.stringify(designDetail(design)));
+      return;
+    }
+
+    const designMatch = url.pathname.match(/^\/v1\/designs\/([^/]+)$/);
+    if (designMatch && req.method === "GET") {
+      const session = sessions.get(sessionToken(req));
+      if (!session) {
+        res.writeHead(401);
+        res.end(JSON.stringify(errorEnvelope("unauthenticated", "authentication required", "mock-design-detail-401")));
+        return;
+      }
+      if (designMatch[1] === "99999999-9999-4999-8999-999999999999") {
+        res.writeHead(500);
+        res.end(JSON.stringify(errorEnvelope("internal_error", "design lookup failed", "mock-design-detail-500")));
+        return;
+      }
+      const design = designs.find((entry) => entry.id === designMatch[1] && entry.owner === session.account.user.email);
+      if (!design) {
+        res.writeHead(404);
+        res.end(JSON.stringify(errorEnvelope("not_found", "design not found", "mock-design-404")));
+        return;
+      }
+      res.writeHead(200);
+      res.end(JSON.stringify(designDetail(design)));
       return;
     }
 

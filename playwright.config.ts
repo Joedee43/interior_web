@@ -15,6 +15,7 @@ export default defineConfig({
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL: BASE_URL,
+    reducedMotion: "reduce",
     trace: "on-first-retry",
   },
   projects: [
