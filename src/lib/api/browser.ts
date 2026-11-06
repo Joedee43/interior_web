@@ -13,6 +13,15 @@ export async function browserApiFetch<T>(
   return readApiResponse<T>(response);
 }
 
+export async function browserApiFetchResponse(
+  path: `/v1/${string}`,
+  init: RequestInit = {},
+): Promise<Response> {
+  const response = await fetch(path, { ...init, credentials: "include", headers: withJsonAccept(init.headers) });
+  if (!response.ok) throw await ApiError.fromResponse(response);
+  return response;
+}
+
 export async function readApiResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     throw await ApiError.fromResponse(response);

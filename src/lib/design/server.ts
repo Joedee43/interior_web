@@ -3,10 +3,11 @@ import "server-only";
 import { cache } from "react";
 import type { operations } from "@/lib/api/generated/schema";
 import { ApiError } from "@/lib/api/error";
-import { serverApiFetch } from "@/lib/api/server";
+import { serverApiFetch, serverApiFetchResponse } from "@/lib/api/server";
 import { DESIGN_PAGE_SIZE } from "./api";
 import { normalizeDesignDetail, normalizeDesignPage, normalizeRoomTemplates } from "./normalize";
 import type { DesignDetail, DesignPage, RoomTemplate } from "./types";
+import { parseDesignEtag } from "./revision";
 
 type TemplatesResponse = operations["listRoomTemplates"]["responses"][200]["content"]["application/json"];
 type ListResponse = operations["listDesigns"]["responses"][200]["content"]["application/json"];
@@ -26,6 +27,16 @@ export const getDesign = cache(async (id: string): Promise<DesignDetail | null> 
   try {
     const raw = await serverApiFetch<DetailResponse>(`/v1/designs/${encodeURIComponent(id)}` as `/v1/${string}`, { cache: "no-store" });
     return normalizeDesignDetail(raw);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+});
+
+export const getRevisionedDesign = cache(async (id: string): Promise<{ design: DesignDetail; revision: number } | null> => {
+  try {
+    const response = await serverApiFetchResponse(`/v1/designs/${encodeURIComponent(id)}` as `/v1/${string}`, { cache: "no-store" });
+    return { design: normalizeDesignDetail(await response.json() as DetailResponse), revision: parseDesignEtag(response.headers.get("etag")) };
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;

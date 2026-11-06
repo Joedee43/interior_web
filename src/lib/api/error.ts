@@ -10,14 +10,16 @@ export class ApiError extends Error {
   readonly code: string;
   readonly details?: Record<string, string>;
   readonly requestId?: string;
+  readonly etag?: string;
 
-  constructor(status: number, payload: ApiErrorPayload) {
+  constructor(status: number, payload: ApiErrorPayload, etag?: string) {
     super(payload.message);
     this.name = "ApiError";
     this.status = status;
     this.code = payload.code;
     this.details = payload.details;
     this.requestId = payload.request_id;
+    this.etag = etag;
   }
 
   static async fromResponse(response: Response): Promise<ApiError> {
@@ -29,7 +31,7 @@ export class ApiError extends Error {
         return new ApiError(response.status, {
           ...body.error,
           request_id: body.error.request_id ?? requestId,
-        });
+        }, response.headers.get("etag") ?? undefined);
       }
     } catch {
       // A proxy or infrastructure error may not use the Go API envelope.
@@ -39,7 +41,7 @@ export class ApiError extends Error {
       code: "unexpected_response",
       message: "The server returned an unexpected response.",
       request_id: requestId,
-    });
+    }, response.headers.get("etag") ?? undefined);
   }
 }
 

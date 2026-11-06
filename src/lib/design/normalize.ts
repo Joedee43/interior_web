@@ -134,7 +134,7 @@ function summary(value: unknown, field: string): DesignSummary {
   return result;
 }
 
-function designItem(value: unknown, field: string): DesignItem {
+export function normalizeDesignItem(value: unknown, field = "response"): DesignItem {
   const item = record(value, field);
   const position = record(item.position, `${field}.position`);
   const product = record(item.product, `${field}.product`);
@@ -203,7 +203,7 @@ export function normalizeDesignDetail(value: unknown): DesignDetail {
   const base = summary(root, "response");
   const normalizedFeatures = features(root.features, base.room, "response.features");
   if (!Array.isArray(root.items)) fail("response.items must be an array");
-  const items = root.items.map((entry, index) => designItem(entry, `response.items[${index}]`));
+  const items = root.items.map((entry, index) => normalizeDesignItem(entry, `response.items[${index}]`));
   if (new Set(items.map(({ id }) => id)).size !== items.length || base.itemCount !== items.length) fail("response item counts are inconsistent");
   const estimate = record(root.estimate, "response.estimate");
   const itemCount = integer(estimate.item_count, "response.estimate.item_count");

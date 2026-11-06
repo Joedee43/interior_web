@@ -1562,6 +1562,15 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description A design mutation omitted its required `If-Match` revision (`precondition_required`). */
+        PreconditionRequired: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
         /** @description Body or file too large (`payload_too_large`). */
         TooLarge: {
             headers: {
@@ -1596,6 +1605,8 @@ export interface components {
         Limit: number;
         /** @description `next_cursor` from the previous page, unchanged. */
         Cursor: string;
+        /** @description Aggregate design ETag from the latest design response. */
+        DesignIfMatch: string;
     };
     requestBodies: never;
     headers: never;
@@ -2966,6 +2977,7 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2990,6 +3002,7 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3002,7 +3015,10 @@ export interface operations {
     deleteDesign: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description Aggregate design ETag from the latest design response. */
+                "If-Match": components["parameters"]["DesignIfMatch"];
+            };
             path: {
                 designID: components["parameters"]["DesignID"];
             };
@@ -3012,12 +3028,17 @@ export interface operations {
         responses: {
             204: components["responses"]["NoContent"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            428: components["responses"]["PreconditionRequired"];
         };
     };
     updateDesign: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description Aggregate design ETag from the latest design response. */
+                "If-Match": components["parameters"]["DesignIfMatch"];
+            };
             path: {
                 designID: components["parameters"]["DesignID"];
             };
@@ -3038,6 +3059,7 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3047,12 +3069,16 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            428: components["responses"]["PreconditionRequired"];
         };
     };
     createDesignItem: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description Aggregate design ETag from the latest design response. */
+                "If-Match": components["parameters"]["DesignIfMatch"];
+            };
             path: {
                 designID: components["parameters"]["DesignID"];
             };
@@ -3067,6 +3093,7 @@ export interface operations {
             /** @description Placed */
             201: {
                 headers: {
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3076,12 +3103,16 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            428: components["responses"]["PreconditionRequired"];
         };
     };
     deleteDesignItem: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description Aggregate design ETag from the latest design response. */
+                "If-Match": components["parameters"]["DesignIfMatch"];
+            };
             path: {
                 designID: components["parameters"]["DesignID"];
                 itemID: components["parameters"]["ItemID"];
@@ -3090,14 +3121,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            204: components["responses"]["NoContent"];
+            /** @description Removed */
+            204: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            428: components["responses"]["PreconditionRequired"];
         };
     };
     updateDesignItem: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                /** @description Aggregate design ETag from the latest design response. */
+                "If-Match": components["parameters"]["DesignIfMatch"];
+            };
             path: {
                 designID: components["parameters"]["DesignID"];
                 itemID: components["parameters"]["ItemID"];
@@ -3120,6 +3163,7 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3128,6 +3172,8 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            428: components["responses"]["PreconditionRequired"];
         };
     };
     createQuoteRequestsFromDesign: {
