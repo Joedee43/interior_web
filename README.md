@@ -76,6 +76,22 @@ the demand-rendered room automatically; mobile keeps GLBs deferred behind
 variant failures use dimensionally correct placeholders without hiding room,
 furniture, availability, or estimate information.
 
+## Interactive room editor
+
+`/designs/[designID]/edit` adds conflict-safe editing on top of the read-only
+room. Desktop customers select and drag furniture in Three.js; mobile customers
+edit in a lightweight top-down plan without downloading GLBs. Exact numeric
+controls cover position and positive counter-clockwise rotation. Room finishes,
+dimensions, doors and windows are editable, and a Radix drawer supplies
+searchable, paginated catalog placement with available variants only.
+
+All design and furniture writes are serialized through one optimistic queue and
+carry the latest aggregate `If-Match` ETag. The editor retains local work after
+failures, exposes backend request IDs, supports retries, and pauses for an
+explicit review or reapply decision when another tab or device has changed the
+room. Furniture is clamped by its rotated rectangular footprint; overlap between
+furniture remains intentionally allowed.
+
 See the backend's `docs/FRONTEND_HANDOFF.md` for the complete cookie, proxy,
 OpenAPI, coordinate, GLB and versioning contract.
 

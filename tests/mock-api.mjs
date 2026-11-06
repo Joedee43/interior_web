@@ -244,6 +244,7 @@ function seededDesigns() {
     created_at: "2026-10-20T10:00:00Z",
     updated_at: "2026-11-04T10:00:00Z",
     features: roomTemplates[1].features,
+    revision: 1,
     items: [{
       id: "66666666-6666-4666-8666-666666666666",
       position: { x_mm: 1600, y_mm: 0, z_mm: 1800 },
@@ -302,6 +303,7 @@ function seededDesigns() {
     created_at: "2026-10-01T00:00:00Z",
     updated_at: `2026-10-${String(30 - index).padStart(2, "0")}T00:00:00Z`,
     features: roomTemplates[0].features,
+    revision: 1,
     items: [],
     estimate: { note: "Estimate at current catalog prices for available items; not a quote.", item_count: 0, unavailable_count: 0, totals: [] },
   }));
@@ -323,6 +325,59 @@ export function createMockServer() {
       "Set-Cookie",
       `interior_session=${token}; Path=/; HttpOnly; SameSite=Lax`,
     );
+  }
+
+  function requireRevision(req, res, design) {
+    const raw = req.headers["if-match"];
+    if (!raw) {
+      res.writeHead(428);
+      res.end(JSON.stringify(errorEnvelope("precondition_required", "If-Match design revision is required", "mock-design-428")));
+      return false;
+    }
+    const match = /^"design-([1-9][0-9]*)"$/.exec(raw);
+    if (!match) {
+      res.writeHead(400);
+      res.end(JSON.stringify(errorEnvelope("validation_failed", "validation failed", "mock-design-etag-400", { "If-Match": "is invalid" })));
+      return false;
+    }
+    if (Number(match[1]) !== design.revision) {
+      res.setHeader("ETag", `"design-${design.revision}"`);
+      res.writeHead(409);
+      res.end(JSON.stringify(errorEnvelope("stale_revision", "the design changed in another editor", "mock-design-stale")));
+      return false;
+    }
+    return true;
+  }
+
+  function advanceRevision(res, design) {
+    design.revision += 1;
+    design.updated_at = new Date().toISOString();
+    res.setHeader("ETag", `"design-${design.revision}"`);
+  }
+
+  function refreshEstimate(design) {
+    const available = design.items.filter((item) => item.available);
+    const totals = new Map();
+    for (const item of available) {
+      const key = `${item.product.company_slug}:${item.product.price.currency}`;
+      const current = totals.get(key) ?? {
+        company_slug: item.product.company_slug,
+        company_name: item.product.company_name,
+        currency: item.product.price.currency,
+        amount_minor: 0,
+        items: 0,
+      };
+      current.amount_minor += item.product.price.amount_minor;
+      current.items += 1;
+      totals.set(key, current);
+    }
+    design.item_count = design.items.length;
+    design.estimate = {
+      note: "Estimate at current catalog prices for available items; not a quote.",
+      item_count: design.items.length,
+      unavailable_count: design.items.length - available.length,
+      totals: [...totals.values()],
+    };
   }
 
   return http.createServer(async (req, res) => {
@@ -508,10 +563,12 @@ export function createMockServer() {
         created_at: now,
         updated_at: now,
         features: template?.features ?? { wall_color: body.features?.wall_color ?? "", floor: body.features?.floor ?? "", openings: [] },
+        revision: 1,
         items: [],
         estimate: { note: "Estimate at current catalog prices for available items; not a quote.", item_count: 0, unavailable_count: 0, totals: [] },
       };
       designs.unshift(design);
+      res.setHeader("ETag", '"design-1"');
       res.writeHead(201);
       res.end(JSON.stringify(designDetail(design)));
       return;
@@ -536,9 +593,71 @@ export function createMockServer() {
         res.end(JSON.stringify(errorEnvelope("not_found", "design not found", "mock-design-404")));
         return;
       }
+      res.setHeader("ETag", `"design-${design.revision}"`);
       res.writeHead(200);
       res.end(JSON.stringify(designDetail(design)));
       return;
+    }
+
+    if (designMatch && req.method === "PATCH") {
+      const session = sessions.get(sessionToken(req));
+      if (!session) { res.writeHead(401); res.end(JSON.stringify(errorEnvelope("unauthenticated", "authentication required", "mock-design-update-401"))); return; }
+      const design = designs.find((entry) => entry.id === designMatch[1] && entry.owner === session.account.user.email);
+      if (!design) { res.writeHead(404); res.end(JSON.stringify(errorEnvelope("not_found", "design not found", "mock-design-404"))); return; }
+      if (!requireRevision(req, res, design)) return;
+      const body = await readJson(req);
+      const nextRoom = { width_mm: body.width_mm ?? design.room.width_mm, depth_mm: body.depth_mm ?? design.room.depth_mm, height_mm: body.height_mm ?? design.room.height_mm };
+      if (nextRoom.width_mm < 1000 || nextRoom.depth_mm < 1000 || nextRoom.height_mm < 2000) { res.writeHead(400); res.end(JSON.stringify(errorEnvelope("validation_failed", "validation failed", "mock-design-update-400", { width_mm: "is outside limits" }))); return; }
+      if (design.items.some((item) => item.position.x_mm > nextRoom.width_mm || item.position.z_mm > nextRoom.depth_mm || item.position.y_mm > nextRoom.height_mm)) { res.writeHead(409); res.end(JSON.stringify(errorEnvelope("items_outside_room", "items are outside room", "mock-design-resize-409"))); return; }
+      if (typeof body.name === "string") design.name = body.name.trim();
+      design.room = nextRoom;
+      if (body.features) design.features = body.features;
+      advanceRevision(res, design);
+      res.writeHead(200); res.end(JSON.stringify(designDetail(design))); return;
+    }
+
+    if (designMatch && req.method === "DELETE") {
+      const session = sessions.get(sessionToken(req));
+      if (!session) { res.writeHead(401); res.end(JSON.stringify(errorEnvelope("unauthenticated", "authentication required", "mock-design-delete-401"))); return; }
+      const index = designs.findIndex((entry) => entry.id === designMatch[1] && entry.owner === session.account.user.email);
+      if (index < 0) { res.writeHead(404); res.end(JSON.stringify(errorEnvelope("not_found", "design not found", "mock-design-404"))); return; }
+      if (!requireRevision(req, res, designs[index])) return;
+      res.setHeader("ETag", `"design-${designs[index].revision + 1}"`);
+      designs.splice(index, 1); res.writeHead(204); res.end(); return;
+    }
+
+    const itemsMatch = url.pathname.match(/^\/v1\/designs\/([^/]+)\/items(?:\/([^/]+))?$/);
+    if (itemsMatch && ["POST", "PATCH", "DELETE"].includes(req.method)) {
+      const session = sessions.get(sessionToken(req));
+      if (!session) { res.writeHead(401); res.end(JSON.stringify(errorEnvelope("unauthenticated", "authentication required", "mock-design-item-401"))); return; }
+      const design = designs.find((entry) => entry.id === itemsMatch[1] && entry.owner === session.account.user.email);
+      if (!design) { res.writeHead(404); res.end(JSON.stringify(errorEnvelope("not_found", "design not found", "mock-design-404"))); return; }
+      if (!requireRevision(req, res, design)) return;
+      if (req.method === "POST" && !itemsMatch[2]) {
+        const body = await readJson(req);
+        const product = allProducts.find((entry) => entry.id === body.product_id);
+        if (!product) { res.writeHead(400); res.end(JSON.stringify(errorEnvelope("validation_failed", "validation failed", "mock-item-400", { product_id: "is unavailable" }))); return; }
+        const chairVariants = [
+          { id: "88888888-8888-4888-8888-888888888888", sku: "ERGO-GREY", available: true, options: { Colour: "Grey" }, price: { amount_minor: 850000, currency: "ETB" } },
+          { id: "89898989-8989-4898-8989-898989898989", sku: "ERGO-BLUE", available: true, options: { Colour: "Blue" }, price: { amount_minor: 920000, currency: "ETB" } },
+          { id: "90909090-9090-4909-8909-909090909090", sku: "ERGO-TERRACOTTA", available: false, options: { Colour: "Terracotta" }, price: { amount_minor: 980000, currency: "ETB" } },
+        ];
+        const variant = product.slug === "ergo-task-chair" ? chairVariants.find((entry) => entry.id === body.variant_id) : undefined;
+        if (product.slug === "ergo-task-chair" && (!variant || !variant.available)) { res.writeHead(400); res.end(JSON.stringify(errorEnvelope("validation_failed", "validation failed", "mock-item-variant-400", { variant_id: "choose an available variant" }))); return; }
+        const productId = product.slug === "ergo-task-chair" ? "77777777-7777-4777-8777-777777777777" : "79797979-7979-4797-8797-797979797979";
+        const item = { id: `71000000-0000-4000-8000-${String(nextDesign++).padStart(12, "0")}`, position: { x_mm: body.x_mm, y_mm: body.y_mm ?? 0, z_mm: body.z_mm }, rotation_deg: body.rotation_deg ?? 0, available: true, product: { id: productId, slug: product.slug, name: product.name, company_slug: product.company.slug, company_name: product.company.name, variant_id: variant?.id ?? null, sku: variant?.sku ?? null, options: variant?.options ?? {}, price: variant?.price ?? product.price, dimensions: product.dimensions, primary_image_url: product.primary_image_url, model_url: product.slug === "ergo-task-chair" ? "/v1/media/chair.glb" : null }, updated_at: new Date().toISOString() };
+        design.items.push(item); refreshEstimate(design); advanceRevision(res, design); res.writeHead(201); res.end(JSON.stringify(item)); return;
+      }
+      const index = design.items.findIndex((entry) => entry.id === itemsMatch[2]);
+      if (index < 0) { res.writeHead(404); res.end(JSON.stringify(errorEnvelope("not_found", "design item not found", "mock-item-404"))); return; }
+      if (req.method === "PATCH") {
+        const body = await readJson(req); const item = design.items[index];
+        item.position = { x_mm: body.x_mm ?? item.position.x_mm, y_mm: body.y_mm ?? item.position.y_mm, z_mm: body.z_mm ?? item.position.z_mm };
+        item.rotation_deg = body.rotation_deg ?? item.rotation_deg;
+        if (body.variant_id) { const variants = [{ id: "88888888-8888-4888-8888-888888888888", sku: "ERGO-GREY", options: { Colour: "Grey" }, price: { amount_minor: 850000, currency: "ETB" } }, { id: "89898989-8989-4898-8989-898989898989", sku: "ERGO-BLUE", options: { Colour: "Blue" }, price: { amount_minor: 920000, currency: "ETB" } }]; const variant = variants.find((entry) => entry.id === body.variant_id); if (!variant) { res.writeHead(400); res.end(JSON.stringify(errorEnvelope("validation_failed", "validation failed", "mock-item-variant-400", { variant_id: "choose an available variant" }))); return; } item.product.variant_id = variant.id; item.product.sku = variant.sku; item.product.options = variant.options; item.product.price = variant.price; }
+        item.updated_at = new Date().toISOString(); refreshEstimate(design); advanceRevision(res, design); res.writeHead(200); res.end(JSON.stringify(item)); return;
+      }
+      design.items.splice(index, 1); refreshEstimate(design); advanceRevision(res, design); res.writeHead(204); res.end(); return;
     }
 
     if (url.pathname === "/v1/catalog/categories") {
@@ -675,7 +794,7 @@ export function createMockServer() {
             ],
             variants: [
               {
-                id: "var-grey",
+                id: "88888888-8888-4888-8888-888888888888",
                 sku: "ERGO-GREY",
                 price: { amount_minor: 850000, currency: "ETB" },
                 available: true,
@@ -684,7 +803,7 @@ export function createMockServer() {
                 value_ids: ["val-grey"],
               },
               {
-                id: "var-blue",
+                id: "89898989-8989-4898-8989-898989898989",
                 sku: "ERGO-BLUE",
                 price: { amount_minor: 920000, currency: "ETB" },
                 available: true,
@@ -693,7 +812,7 @@ export function createMockServer() {
                 value_ids: ["val-blue"],
               },
               {
-                id: "var-terracotta",
+                id: "90909090-9090-4909-8909-909090909090",
                 sku: "ERGO-TERRACOTTA",
                 price: { amount_minor: 980000, currency: "ETB" },
                 available: false,

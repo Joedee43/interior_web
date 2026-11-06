@@ -87,4 +87,88 @@ test.describe("Saved room designs", () => {
     await expect(page.getByRole("heading", { name: "Unable to load this room" })).toBeVisible();
     await expect(page.getByText(/mock-design-detail-500/)).toBeVisible();
   });
+
+  test("edits room settings and furniture with conflict-safe persistence", async ({ page }, testInfo) => {
+    const roomName = `Editable room ${testInfo.project.name}`;
+    await signIn(page, "/designs/new");
+    await page.getByLabel("Design name").fill(roomName);
+    await page.getByRole("button", { name: /Living room 5×6 m/ }).click();
+    await clickAfterScroll(page.getByRole("button", { name: "Create design" }));
+    await page.getByRole("link", { name: "Edit room" }).click();
+    await expect(page.getByRole("heading", { name: `Edit ${roomName}` })).toBeVisible();
+
+    const modelRequests: string[] = [];
+    page.on("request", (request) => { if (request.url().endsWith(".glb")) modelRequests.push(request.url()); });
+    if (testInfo.project.name === "mobile") {
+      await expect(page.getByTestId("editable-floor-plan")).toBeVisible();
+      await page.waitForTimeout(250);
+      expect(modelRequests).toHaveLength(0);
+    } else {
+      await expect(page.getByTestId("room-3d-scene").first()).toBeVisible();
+    }
+
+    const renamed = `${roomName} revised`;
+    await page.getByLabel("Name", { exact: true }).fill(renamed);
+    await expect(page.getByRole("heading", { name: `Edit ${renamed}` })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: "Add opening" }).click();
+    await expect(page.getByRole("button", { name: "Remove opening" })).toBeVisible();
+    await expect(page.locator('div[role="status"]')).toContainText("Saved", { timeout: 10_000 });
+
+    await page.getByRole("button", { name: "Add furniture" }).click();
+    await page.getByRole("button", { name: /Ergo Task Chair/ }).click();
+    await page.getByRole("button", { name: "Place in room" }).click();
+    await expect(page.getByRole("heading", { name: "Ergo Task Chair" })).toBeVisible();
+    await expect(page.locator('div[role="status"]')).toContainText("Saved", { timeout: 10_000 });
+
+    await page.getByLabel("Rotation").fill("45");
+    await page.waitForTimeout(600);
+    await expect(page.locator('div[role="status"]')).toContainText("Saved", { timeout: 10_000 });
+    await page.getByLabel("Available finish").selectOption("89898989-8989-4898-8989-898989898989");
+    await expect(page.locator('div[role="status"]')).toContainText("Saved", { timeout: 10_000 });
+
+    await page.reload();
+    await page.getByRole("button", { name: "Select Ergo Task Chair" }).click();
+    await expect(page.getByLabel("Rotation")).toHaveValue("45");
+    await expect(page.getByLabel("Available finish")).toHaveValue("89898989-8989-4898-8989-898989898989");
+    await page.getByRole("button", { name: "Remove", exact: true }).click();
+    await expect(page.getByText("Select furniture to edit its exact position, rotation or finish.")).toBeVisible();
+    await expect(page.locator('div[role="status"]')).toContainText("Saved", { timeout: 10_000 });
+  });
+
+  test("protects editor URLs and keeps editor ownership failures strict", async ({ page }) => {
+    const editPath = "/designs/55555555-5555-4555-8555-555555555555/edit";
+    await page.goto(editPath);
+    await expect(page).toHaveURL(`/login?next=${encodeURIComponent(editPath)}`);
+    await signIn(page);
+    await page.goto("/designs/12345678-1234-4234-8234-123456789012/edit");
+    await expect(page.getByText("404 · Not found")).toBeVisible();
+  });
+
+  test("detects a stale editor, reviews latest, and deletes with a current revision", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "mobile", "cross-context concurrency is covered once");
+    await signIn(page, "/designs/new");
+    await page.getByLabel("Design name").fill("Concurrent room");
+    await page.getByRole("button", { name: /Living room 5×6 m/ }).click();
+    await clickAfterScroll(page.getByRole("button", { name: "Create design" }));
+    await expect(page).toHaveURL(/\/designs\/70000000-/);
+    const editUrl = `${page.url()}/edit`;
+    await page.goto(editUrl);
+    await expect(page.getByRole("heading", { name: "Edit Concurrent room" })).toBeVisible();
+
+    const other = await page.context().newPage();
+    await other.goto(editUrl);
+    await expect(other.getByRole("heading", { name: "Edit Concurrent room" })).toBeVisible();
+
+    await page.getByLabel("Name", { exact: true }).fill("Remote name");
+    await expect(page.locator('div[role="status"]')).toContainText("Saved", { timeout: 10_000 });
+    await other.getByLabel("Name", { exact: true }).fill("My stale name");
+    await expect(other.locator('div[role="status"]')).toContainText("Conflict", { timeout: 10_000 });
+    await other.getByRole("button", { name: "Review latest" }).click();
+    await expect(other.getByRole("heading", { name: "Edit Remote name" })).toBeVisible();
+
+    await other.getByRole("button", { name: "Delete design" }).click();
+    await other.getByRole("button", { name: "Delete permanently" }).click();
+    await expect(other).toHaveURL("/designs");
+    await other.close();
+  });
 });
