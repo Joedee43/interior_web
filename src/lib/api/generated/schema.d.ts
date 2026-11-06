@@ -1379,6 +1379,8 @@ export interface components {
                 company_name?: string;
                 /** Format: uuid */
                 variant_id?: string | null;
+                /** @description Exact case-sensitive variant SKU; null for products without variants. */
+                sku?: string | null;
                 options?: {
                     [key: string]: string;
                 };
