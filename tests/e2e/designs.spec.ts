@@ -160,8 +160,10 @@ test.describe("Saved room designs", () => {
     await expect(other.getByRole("heading", { name: "Edit Concurrent room" })).toBeVisible();
 
     await page.getByLabel("Name", { exact: true }).fill("Remote name");
+    await page.waitForTimeout(600);
     await expect(page.locator('div[role="status"]')).toContainText("Saved", { timeout: 10_000 });
     await other.getByLabel("Name", { exact: true }).fill("My stale name");
+    await other.waitForTimeout(600);
     await expect(other.locator('div[role="status"]')).toContainText("Conflict", { timeout: 10_000 });
     await other.getByRole("button", { name: "Review latest" }).click();
     await expect(other.getByRole("heading", { name: "Edit Remote name" })).toBeVisible();

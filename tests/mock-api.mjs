@@ -315,7 +315,9 @@ export function createMockServer() {
   const sessions = new Map();
   let nextSession = 1;
   let nextDesign = 1;
+  let nextQuote = 1;
   const designs = seededDesigns();
+  const quoteRequests = [];
   const designCursor = "  design+page==  ";
 
   function issueSession(res, account, mode = "normal") {
@@ -513,6 +515,50 @@ export function createMockServer() {
       res.writeHead(200);
       res.end(JSON.stringify({ templates: roomTemplates }));
       return;
+    }
+
+    if (url.pathname === "/v1/quote-requests/from-design" && req.method === "POST") {
+      const session = sessions.get(sessionToken(req));
+      if (!session) { res.writeHead(401); res.end(JSON.stringify(errorEnvelope("unauthenticated", "authentication required", "mock-quote-401"))); return; }
+      const body = await readJson(req);
+      const design = designs.find((entry) => entry.id === body.design_id && entry.owner === session.account.user.email);
+      if (!design) { res.writeHead(404); res.end(JSON.stringify(errorEnvelope("not_found", "design not found", "mock-quote-404"))); return; }
+      if (body.note === "trigger-rate") { res.writeHead(429); res.end(JSON.stringify(errorEnvelope("rate_limited", "too many attempts", "mock-quote-429"))); return; }
+      if (body.note === "trigger-error") { res.writeHead(500); res.end(JSON.stringify(errorEnvelope("internal_error", "quote submission failed", "mock-quote-500"))); return; }
+      const details = {};
+      if (typeof body.contact_phone !== "string" || [...body.contact_phone.trim()].length > 40) details.contact_phone = "must be at most 40 characters";
+      if (typeof body.delivery_address !== "string" || [...body.delivery_address.trim()].length > 500) details.delivery_address = "must be at most 500 characters";
+      if (typeof body.note !== "string" || [...body.note.trim()].length > 2000) details.note = "must be at most 2000 characters";
+      if (Object.keys(details).length) { res.writeHead(400); res.end(JSON.stringify(errorEnvelope("validation_failed", "validation failed", "mock-quote-400", details))); return; }
+      const available = design.items.filter((item) => item.available);
+      if (!available.length) { res.writeHead(400); res.end(JSON.stringify(errorEnvelope("nothing_available", "none of the design's items are currently available", "mock-quote-empty-400"))); return; }
+      const submissionId = `81000000-0000-4000-8000-${String(nextQuote++).padStart(12, "0")}`;
+      const groups = new Map();
+      for (const item of available) {
+        const key = `${item.product.company_slug}:${item.product.price.currency}`;
+        const group = groups.get(key) ?? [];
+        group.push(item); groups.set(key, group);
+      }
+      const submittedAt = new Date().toISOString();
+      const requests = [...groups.values()].map((items) => {
+        const first = items[0];
+        const companyId = first.product.company_slug === "ergoseat" ? "82000000-0000-4000-8000-000000000001" : "82000000-0000-4000-8000-000000000002";
+        const request = {
+          id: `83000000-0000-4000-8000-${String(nextQuote++).padStart(12, "0")}`, submission_id: submissionId, design_id: design.id,
+          status: "pending", revision: 0, final: false,
+          company: { id: companyId, slug: first.product.company_slug, name: first.product.company_name },
+          customer: { name: session.account.user.full_name, email: session.account.user.email, phone: body.contact_phone.trim(), delivery_address: body.delivery_address.trim(), note: body.note.trim() },
+          currency: first.product.price.currency,
+          list_total_minor: items.reduce((sum, item) => sum + item.product.price.amount_minor, 0), quoted_total_minor: null,
+          valid_until: null, expired: false, company_note: "", line_count: items.length,
+          lines: items.map((item, index) => ({ id: `84000000-0000-4000-8000-${String(nextQuote * 100 + index).padStart(12, "0")}`, product_id: item.product.id, variant_id: item.product.variant_id, product_name: item.product.name, product_slug: item.product.slug, sku: item.product.sku, options: item.product.options, dimensions: item.product.dimensions, quantity: 1, list_unit_price_minor: item.product.price.amount_minor, quoted_unit_price_minor: null, note: "" })),
+          charges: [], submitted_at: submittedAt, quoted_at: null, decided_at: null,
+        };
+        quoteRequests.push(request);
+        return request;
+      });
+      const skipped = design.items.filter((item) => !item.available).map((item) => ({ item_id: item.id, product_name: item.product.name }));
+      res.writeHead(201); res.end(JSON.stringify({ submission_id: submissionId, requests, skipped })); return;
     }
 
     if (url.pathname === "/v1/designs" && req.method === "GET") {

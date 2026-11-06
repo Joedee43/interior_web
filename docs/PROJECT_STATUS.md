@@ -1,22 +1,22 @@
 # Project status — interior_web
 
-**Updated:** 2026-11-06 · **Branch:** `phase-7` · **Backend contract:** `/v1`,
+**Updated:** 2026-11-06 · **Branch:** `phase-8` · **Backend contract:** `/v1`,
 OpenAPI 1.0.0
 
 ## Current phase
 
-Phase 7 is complete on `phase-7` and awaiting merge approval. It delivers:
+Phase 8 is complete on `phase-8` and awaiting merge approval. It delivers:
 
-- A protected `/designs/[designID]/edit` route, with the existing design page retained as the read-only customer view.
-- Revision-aware design and item APIs using exact `ETag`/`If-Match` values, strict response normalization, ownership-aware 404s and backend request IDs.
-- A design-scoped Zustand store with optimistic drafts, one serialized aggregate mutation queue, repeated-edit coalescing, 500 ms valid-input saves, retryable failures, auth clearing on 401 and post-save estimate reconciliation.
-- Explicit `Saved`, `Saving`, `Unsaved`, `Conflict` and failure states. Stale revisions pause the queue and let the customer review the latest room or reapply the local operation against its revision.
-- Desktop Three.js furniture selection and floor-raycast dragging with orbit disabled during movement. Mobile stays GLB-free and edits through an SVG top-down plan; WebGL loss falls back to that same plan.
-- Rotated-footprint clamping, positive counter-clockwise rotation, exact millimetre controls and accessible DOM furniture selection in addition to pointer controls. Furniture overlap remains allowed; there is no snapping or collision system.
-- Room renaming, metre-based resizing, wall colour, floor finish and door/window authoring with room, ceiling, count and same-wall rectangular-overlap checks.
-- A Radix UI catalog drawer with editor-scoped search, category filtering, opaque pagination, strict product details, available-variant placement and exact KHR SKU switching.
-- Furniture add, position, rotation, variant and remove operations plus confirmed design deletion.
-- A stateful revision-enforcing mock API and desktop/mobile coverage for persistence, GLB deferral, strict editor protection, two-tab stale conflicts and deletion.
+- Strict quote submission, request, line, snapshot, currency, total, status, revision, date and skipped-item normalization on top of generated OpenAPI operation types.
+- A protected, noindex `/designs/[designID]/quote` review route with preserved login return paths, ownership-aware 404s and real backend request IDs.
+- Current-price review grouped by maker and currency, with exact SKU/configuration details and unavailable furniture separated as items that will not be submitted.
+- Optional, backend-aligned phone, delivery address and maker-note validation plus read-only account name/email snapshots.
+- A final pre-submit design refresh that stops when price, variant or availability changed and asks the customer to review the new estimate.
+- Explicit confirmation that submissions are separate maker requests, not final quotes, orders or payments.
+- Non-retrying TanStack submission with duplicate-click prevention, retained form input, ambiguous-network guidance, 401 auth clearing and rate-limit/validation/request-ID recovery.
+- Inline success results with one pending request per maker, submission reference, list-price snapshot and backend-reported skipped products.
+- Quote entry points from the read-only design and saved editor; unsaved editors cannot proceed to quoting.
+- A stateful mock submission workflow, persisted quote snapshots for Phase 9, multi-maker splitting and desktop/mobile browser coverage.
 
 Verification completed on 2026-11-06:
 
@@ -24,11 +24,11 @@ Verification completed on 2026-11-06:
 - Backend OpenAPI types match contract (`npm run api:check`).
 - Strict lint (`npm run lint`) passes with 0 warnings.
 - TypeScript (`npm run typecheck`) passes with 0 errors.
-- Vitest unit and component tests (183 tests across 44 test files) all pass.
+- Vitest unit and component tests (205 tests across 49 test files) all pass.
 - Production build (`npm run build`) compiles successfully; protected design routes render at request time while design detail retains partial prerendering with request-time data.
-- Playwright E2E tests pass from a standalone development-server startup: 73 pass and 5 intentional platform-specific cases skip across desktop Chromium and mobile Pixel 7.
+- Playwright E2E tests pass from a standalone development-server startup: 82 pass and 6 intentional platform-specific cases skip across desktop Chromium and mobile Pixel 7.
 - Production dependency audit (`npm audit --omit=dev`) found 0 vulnerabilities.
-- Real Go API verification migrated and reseeded development data, moved the grey chair to `(1700, 0, 1900)` mm at 45°, reloaded the exact persisted values, restored `(1600, 0, 1800)` mm at 30°, added and removed the blue SKU, and observed monotonic ETags through `design-6`. The demo room was left restored with one grey chair.
+- Real Go API verification submitted “My living room” to `demo-furniture` and confirmed a pending revision-0 request containing quantity one of `DEMO-CHAIR-GREY` at the 1,850,000-minor-unit ETB snapshot. The exact verification submission was removed afterward. A full seed reset was blocked because unrelated customer designs reference the demo products; no unrelated customer data was deleted.
 
 ## Accepted delivery phases
 
@@ -38,8 +38,8 @@ Verification completed on 2026-11-06:
 4. Authentication and protected layouts (Complete on `main`).
 5. Three.js product preview and KHR material variants (Complete on `main`).
 6. Design creation/list/read-only room rendering (Complete on `main`).
-7. Interactive editor and auto-save (Complete on `phase-7`).
-8. Estimates and quote submission.
+7. Interactive editor and auto-save (Complete on `main`).
+8. Estimates and quote submission (Complete on `phase-8`).
 9. Customer quote management.
 10. Accessibility, performance and production hardening.
 

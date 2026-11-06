@@ -92,6 +92,19 @@ explicit review or reapply decision when another tab or device has changed the
 room. Furniture is clamped by its rotated rectangular footprint; overlap between
 furniture remains intentionally allowed.
 
+## Design quote requests
+
+Saved rooms expose a protected review at `/designs/[designID]/quote`. The page
+refreshes the design before submission, groups current estimates by maker and
+currency, and clearly separates unavailable furniture that will be skipped.
+Customers may add optional phone, delivery address, and maker notes before one
+submission is split into an independent pending request for each maker.
+
+Quote submission is deliberately non-retrying: an interrupted response may
+have reached the API, so the form retains the customer’s input and asks them to
+confirm before an explicit retry. Estimates are not final quotes, orders, or
+payments. Quote history and customer decisions are delivered in Phase 9.
+
 See the backend's `docs/FRONTEND_HANDOFF.md` for the complete cookie, proxy,
 OpenAPI, coordinate, GLB and versioning contract.
 
