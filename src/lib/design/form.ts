@@ -22,7 +22,7 @@ export const designFormSchema = z.object({
   }
 });
 
-export type DesignFormValues = z.input<typeof designFormSchema>;
+export type DesignFormValues = z.infer<typeof designFormSchema>;
 
 export function metresToMillimetres(value: string): number {
   if (!/^\d+(?:\.\d{1,3})?$/.test(value)) throw new Error("Invalid metre value");

@@ -35,6 +35,9 @@ export function AccountNav() {
   const firstName = account.data.user.fullName.split(/\s+/)[0] || "Account";
   return (
     <div className="flex items-center gap-1 sm:gap-2">
+      <Button asChild variant="quiet" size="sm" className="hidden sm:inline-flex">
+        <Link href="/designs">My designs</Link>
+      </Button>
       <Button asChild variant="quiet" size="sm">
         <Link href="/account">{firstName}</Link>
       </Button>
