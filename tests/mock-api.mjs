@@ -668,7 +668,7 @@ export function createMockServer() {
       const index = designs.findIndex((entry) => entry.id === designMatch[1] && entry.owner === session.account.user.email);
       if (index < 0) { res.writeHead(404); res.end(JSON.stringify(errorEnvelope("not_found", "design not found", "mock-design-404"))); return; }
       if (!requireRevision(req, res, designs[index])) return;
-      res.setHeader("ETag", `"design-${designs[index].revision + 1}"`);
+      // Like Go: a deleted design has no next revision, so no ETag.
       designs.splice(index, 1); res.writeHead(204); res.end(); return;
     }
 

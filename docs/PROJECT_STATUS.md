@@ -1,11 +1,31 @@
 # Project status — interior_web
 
-**Updated:** 2026-11-06 · **Branch:** `phase-8` · **Backend contract:** `/v1`,
-OpenAPI 1.0.0
+**Updated:** 2026-11-08 · **Branch:** `main` (Phase 8 merged locally, not pushed yet) ·
+**Backend contract:** `/v1`, OpenAPI 1.0.0
 
-## Current phase
+## Fixes after Phase 8 (2026-11-08)
 
-Phase 8 is complete on `phase-8` and awaiting merge approval. It delivers:
+A review against the real Go API found and fixed:
+
+- Deleting a design reported an error after it succeeded: Go answers `204` without an ETag (there
+  is no next revision), but the frontend required one. The mock API sent one, which hid the bug;
+  it now matches Go.
+- Adding furniture quickly could drop a piece: every placement shared one save-queue key, so a
+  third queued placement replaced the second.
+- An edit made while "Save failed" or "Conflict" was showing cleared the error and silently
+  discarded the failed change. Later edits now wait until Retry, Review latest or Apply mine.
+  A retried item removal no longer duplicates or leaves the item on screen.
+- Clicking furniture moved its centre to the click point and saved; dragging snapped the centre
+  under the pointer. Both the 3D scene and the 2D plan now keep the grab offset, ignore clicks
+  under 4 px of movement and save once on release. The 3D drag ends on any release (it stuck
+  when released off the floor); the 2D plan captures the pointer and maps through the
+  letterboxed viewBox (non-4:3 rooms were offset).
+- Door/window rows kept a removed opening's numbers (uncontrolled inputs keyed by index); they
+  now always show the current values.
+
+## Phase 8
+
+Phase 8 is complete and merged into `main`. It delivers:
 
 - Strict quote submission, request, line, snapshot, currency, total, status, revision, date and skipped-item normalization on top of generated OpenAPI operation types.
 - A protected, noindex `/designs/[designID]/quote` review route with preserved login return paths, ownership-aware 404s and real backend request IDs.
@@ -39,7 +59,7 @@ Verification completed on 2026-11-06:
 5. Three.js product preview and KHR material variants (Complete on `main`).
 6. Design creation/list/read-only room rendering (Complete on `main`).
 7. Interactive editor and auto-save (Complete on `main`).
-8. Estimates and quote submission (Complete on `phase-8`).
+8. Estimates and quote submission (Complete on `main`).
 9. Customer quote management.
 10. Accessibility, performance and production hardening.
 

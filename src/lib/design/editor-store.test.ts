@@ -85,4 +85,65 @@ describe("editor save queue", () => {
     await tick(); await tick();
     expect(store.getState()).toMatchObject({ status: "saved", revision: 2 });
   });
+
+  it("sends every queued placement, even when added while another save runs", async () => {
+    let finishFirst!: (value: unknown) => void;
+    api.createDesignItem.mockReturnValueOnce(new Promise((resolve) => { finishFirst = resolve; }));
+    api.createDesignItem.mockImplementation(async (_id: string, revision: number) => ({ data: { ...item, id: `item-${revision}` }, revision: revision + 1 }));
+    const store = createEditorStore({ ...design, items: [], itemCount: 0 }, 1);
+    const place = (x: number) => store.getState().addItem({ product_id: item.product.id, x_mm: x, y_mm: 0, z_mm: 1000, rotation_deg: 0 });
+
+    place(1000); place(2000); place(3000);
+    finishFirst({ data: { ...item, id: "item-1" }, revision: 2 });
+    for (let i = 0; i < 6; i += 1) await tick();
+
+    expect(api.createDesignItem).toHaveBeenCalledTimes(3);
+    expect(api.createDesignItem.mock.calls.map(([, , input]) => (input as { x_mm: number }).x_mm)).toEqual([1000, 2000, 3000]);
+    expect(store.getState()).toMatchObject({ status: "saved", revision: 4 });
+    expect(store.getState().design.items).toHaveLength(3);
+  });
+
+  it("holds later edits behind a failed save instead of dropping the failed change", async () => {
+    api.updateDesignItem.mockRejectedValueOnce(new ApiError(500, { code: "internal_error", message: "boom", request_id: "req-500" }));
+    api.updateDesignItem.mockImplementation(async (_id: string, itemId: string, revision: number) => ({ data: { ...item, id: itemId, rotationDeg: 90 }, revision: revision + 1 }));
+    api.updateDesign.mockImplementation(async (_id: string, revision: number) => ({ data: { ...design, name: "Renamed" }, revision: revision + 1 }));
+    const store = createEditorStore(design, 1);
+
+    store.getState().patchItem(item.id, { rotation_deg: 90 }, (current) => ({ ...current, rotationDeg: 90 }));
+    await tick();
+    expect(store.getState()).toMatchObject({ status: "error", requestId: "req-500" });
+
+    store.getState().patchDesign({ name: "Renamed" }, (current) => ({ ...current, name: "Renamed" }));
+    await tick();
+    expect(store.getState()).toMatchObject({ status: "error", requestId: "req-500" });
+    expect(api.updateDesign).not.toHaveBeenCalled();
+
+    store.getState().retry();
+    for (let i = 0; i < 4; i += 1) await tick();
+    expect(api.updateDesignItem).toHaveBeenLastCalledWith(design.id, item.id, 1, expect.objectContaining({ rotation_deg: 90 }));
+    expect(api.updateDesign).toHaveBeenCalledWith(design.id, 2, expect.objectContaining({ name: "Renamed" }));
+    expect(store.getState()).toMatchObject({ status: "saved", revision: 3, requestId: undefined, message: undefined });
+  });
+
+  it("removes an item once after a failed delete is retried", async () => {
+    api.deleteDesignItem.mockRejectedValueOnce(new ApiError(500, { code: "internal_error", message: "boom" }));
+    api.deleteDesignItem.mockRejectedValueOnce(new ApiError(500, { code: "internal_error", message: "boom" }));
+    api.deleteDesignItem.mockResolvedValueOnce(2);
+    // An older server copy keeps the background refresh from hiding the local result.
+    api.fetchRevisionedDesignDetail.mockResolvedValue({ data: design, revision: 1 });
+    const store = createEditorStore(design, 1);
+
+    store.getState().removeItem(item.id);
+    await tick();
+    expect(store.getState().design.items).toHaveLength(1);
+    store.getState().retry();
+    await tick();
+    expect(store.getState().design.items).toHaveLength(1);
+
+    store.getState().retry();
+    await tick(); await tick();
+    expect(store.getState()).toMatchObject({ status: "saved", revision: 2 });
+    expect(store.getState().design.items).toHaveLength(0);
+    expect(store.getState().design.itemCount).toBe(0);
+  });
 });

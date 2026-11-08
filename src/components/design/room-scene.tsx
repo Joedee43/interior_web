@@ -54,10 +54,22 @@ interface EditingControls {
   onCommitMove: (id: string, xMm: number, zMm: number) => void;
 }
 
-function PlacedFurniture({ design, item, editing, onDragStart }: { design: DesignDetail; item: DesignItem; editing?: EditingControls; onDragStart?: (id: string) => void }) {
+// A click that wobbles a few pixels selects; it must not move or save.
+const DRAG_THRESHOLD_PX = 4;
+
+interface FurnitureDrag {
+  id: string;
+  offsetXMm: number;
+  offsetZMm: number;
+  startClientX: number;
+  startClientY: number;
+  last?: { xMm: number; zMm: number };
+}
+
+function PlacedFurniture({ design, item, editing, onDragStart }: { design: DesignDetail; item: DesignItem; editing?: EditingControls; onDragStart?: (item: DesignItem, event: ThreeEvent<PointerEvent>) => void }) {
   const position = itemWorldPosition(design.room, item);
   const fallback = <Placeholder item={item} />;
-  return <group position={position} rotation={[0, degreesToYRadians(item.rotationDeg), 0]} onPointerDown={editing ? (event) => { event.stopPropagation(); editing.onSelect(item.id); onDragStart?.(item.id); } : undefined}><ItemBoundary fallback={fallback}>{item.product.modelUrl ? <Suspense fallback={fallback}><LoadedFurniture item={item} /></Suspense> : fallback}</ItemBoundary>{editing?.selectedItemId === item.id && <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[Math.max(item.product.dimensions.widthMm, item.product.dimensions.depthMm) / 1900, Math.max(item.product.dimensions.widthMm, item.product.dimensions.depthMm) / 1700, 32]} /><meshBasicMaterial color="#a94f35" /></mesh>}{!item.available && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}><ringGeometry args={[0.35, 0.42, 32]} /><meshBasicMaterial color="#b5412d" /></mesh>}</group>;
+  return <group position={position} rotation={[0, degreesToYRadians(item.rotationDeg), 0]} onPointerDown={editing ? (event) => { event.stopPropagation(); editing.onSelect(item.id); onDragStart?.(item, event); } : undefined}><ItemBoundary fallback={fallback}>{item.product.modelUrl ? <Suspense fallback={fallback}><LoadedFurniture item={item} /></Suspense> : fallback}</ItemBoundary>{editing?.selectedItemId === item.id && <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[Math.max(item.product.dimensions.widthMm, item.product.dimensions.depthMm) / 1900, Math.max(item.product.dimensions.widthMm, item.product.dimensions.depthMm) / 1700, 32]} /><meshBasicMaterial color="#a94f35" /></mesh>}{!item.available && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}><ringGeometry args={[0.35, 0.42, 32]} /><meshBasicMaterial color="#b5412d" /></mesh>}</group>;
 }
 
 function wallPosition(wall: Wall, start: number, length: number, bottom: number, height: number, width: number, depth: number): [number, number, number] {
@@ -98,8 +110,29 @@ function Scene({ design, controlsRef, onFailure, editing }: { design: DesignDeta
   const wallColor = design.features.wallColor ?? "#F2EFE9";
   const floorColors = { oak: "#a77b4f", tile: "#d8d4ca", carpet: "#777469", concrete: "#aaa7a0" };
   const [dragging, setDragging] = useState<string | null>(null);
-  const floorPoint = (event: ThreeEvent<PointerEvent>) => ({ x: Math.round((event.point.x + width / 2) * 1000), z: Math.round((event.point.z + depth / 2) * 1000) });
-  return <><ContextGuard onFailure={onFailure} /><color attach="background" args={["#e8e3db"]} /><ambientLight intensity={1.5} /><directionalLight position={[4, 8, 3]} intensity={2.2} castShadow /><Bounds fit clip observe margin={1.2}><group><mesh position={[0, -0.04, 0]} receiveShadow onPointerMove={editing ? (event) => { if (dragging) { event.stopPropagation(); const point = floorPoint(event); editing.onPreviewMove(dragging, point.x, point.z); } } : undefined} onPointerUp={editing ? (event) => { if (dragging) { const point = floorPoint(event); editing.onCommitMove(dragging, point.x, point.z); setDragging(null); } } : undefined}><boxGeometry args={[width, 0.08, depth]} /><meshStandardMaterial color={floorColors[design.features.floor ?? "oak"]} roughness={0.9} /></mesh>{buildWallSegments(design.room, design.features.openings).map((segment, index) => { const horizontal = segment.wall === "north" || segment.wall === "south"; return <mesh key={`${segment.wall}-${index}`} position={wallPosition(segment.wall, segment.alongStartM, segment.alongLengthM, segment.bottomM, segment.heightM, width, depth)} castShadow><boxGeometry args={horizontal ? [segment.alongLengthM, segment.heightM, 0.08] : [0.08, segment.heightM, segment.alongLengthM]} /><meshStandardMaterial color={wallColor} transparent opacity={0.72} roughness={0.95} /></mesh>; })}{design.items.map((item) => <PlacedFurniture key={item.id} design={design} item={item} editing={editing} onDragStart={setDragging} />)}</group></Bounds><OrbitControls ref={controlsRef} makeDefault enabled={!dragging} enablePan minDistance={1} maxDistance={Math.max(width, depth) * 2.5} maxPolarAngle={Math.PI / 2.02} target={[0, Math.min(1, design.room.heightMm / 2000), 0]} /><BoundedPan controlsRef={controlsRef} width={width} depth={depth} height={design.room.heightMm / 1000} /></>;
+  const drag = useRef<FurnitureDrag | null>(null);
+  const toRoomMm = (point: { x: number; z: number }) => ({ x: Math.round((point.x + width / 2) * 1000), z: Math.round((point.z + depth / 2) * 1000) });
+  // Keep the grabbed point under the pointer instead of snapping the centre to it.
+  const startDrag = (item: DesignItem, event: ThreeEvent<PointerEvent>) => {
+    const grabbed = toRoomMm(event.point);
+    drag.current = { id: item.id, offsetXMm: item.position.xMm - grabbed.x, offsetZMm: item.position.zMm - grabbed.z, startClientX: event.clientX, startClientY: event.clientY };
+    setDragging(item.id);
+  };
+  // Released anywhere (walls, background, outside the canvas): end the drag,
+  // and save only when the furniture actually moved.
+  useEffect(() => {
+    if (!dragging || !editing) return;
+    const finish = () => {
+      const current = drag.current;
+      drag.current = null;
+      setDragging(null);
+      if (current?.last) editing.onCommitMove(current.id, current.last.xMm, current.last.zMm);
+    };
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+    return () => { window.removeEventListener("pointerup", finish); window.removeEventListener("pointercancel", finish); };
+  }, [dragging, editing]);
+  return <><ContextGuard onFailure={onFailure} /><color attach="background" args={["#e8e3db"]} /><ambientLight intensity={1.5} /><directionalLight position={[4, 8, 3]} intensity={2.2} castShadow /><Bounds fit clip observe margin={1.2}><group><mesh position={[0, -0.04, 0]} receiveShadow onPointerMove={editing ? (event) => { const current = drag.current; if (!current) return; event.stopPropagation(); if (!current.last && Math.hypot(event.clientX - current.startClientX, event.clientY - current.startClientY) < DRAG_THRESHOLD_PX) return; const point = toRoomMm(event.point); current.last = { xMm: point.x + current.offsetXMm, zMm: point.z + current.offsetZMm }; editing.onPreviewMove(current.id, current.last.xMm, current.last.zMm); } : undefined}><boxGeometry args={[width, 0.08, depth]} /><meshStandardMaterial color={floorColors[design.features.floor ?? "oak"]} roughness={0.9} /></mesh>{buildWallSegments(design.room, design.features.openings).map((segment, index) => { const horizontal = segment.wall === "north" || segment.wall === "south"; return <mesh key={`${segment.wall}-${index}`} position={wallPosition(segment.wall, segment.alongStartM, segment.alongLengthM, segment.bottomM, segment.heightM, width, depth)} castShadow><boxGeometry args={horizontal ? [segment.alongLengthM, segment.heightM, 0.08] : [0.08, segment.heightM, segment.alongLengthM]} /><meshStandardMaterial color={wallColor} transparent opacity={0.72} roughness={0.95} /></mesh>; })}{design.items.map((item) => <PlacedFurniture key={item.id} design={design} item={item} editing={editing} onDragStart={startDrag} />)}</group></Bounds><OrbitControls ref={controlsRef} makeDefault enabled={!dragging} enablePan minDistance={1} maxDistance={Math.max(width, depth) * 2.5} maxPolarAngle={Math.PI / 2.02} target={[0, Math.min(1, design.room.heightMm / 2000), 0]} /><BoundedPan controlsRef={controlsRef} width={width} depth={depth} height={design.room.heightMm / 1000} /></>;
 }
 
 export default function RoomScene({ design, onFailure, editing }: { design: DesignDetail; onFailure: () => void; editing?: EditingControls }) {

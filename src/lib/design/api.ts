@@ -50,9 +50,9 @@ export async function updateDesign(id: string, revision: number, input: UpdateDe
   return revisioned(`/v1/designs/${encodeURIComponent(id)}` as `/v1/${string}`, revision, { method: "PATCH", body: JSON.stringify(input) }, normalizeDesignDetail);
 }
 
-export async function deleteDesign(id: string, revision: number): Promise<number> {
-  const result = await revisioned(`/v1/designs/${encodeURIComponent(id)}` as `/v1/${string}`, revision, { method: "DELETE" }, () => undefined);
-  return result.revision;
+// A deleted design has no next revision, so Go answers 204 without an ETag.
+export async function deleteDesign(id: string, revision: number): Promise<void> {
+  await browserApiFetchResponse(`/v1/designs/${encodeURIComponent(id)}` as `/v1/${string}`, { method: "DELETE", headers: { "If-Match": designEtag(revision) } });
 }
 
 export async function createDesignItem(id: string, revision: number, input: CreateDesignItemInput): Promise<Revisioned<DesignItem>> {

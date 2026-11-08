@@ -36,6 +36,7 @@ export function createEditorStore(initial: DesignDetail, revision: number, onUna
   let failed: Operation | undefined;
   let pending: Operation[] = [];
   let running = false;
+  let addSequence = 0;
   const store = createStore<EditorState>((set, get) => {
     const reconcile = async () => {
       if (pending.length !== 0 || running || get().status !== "saved") return;
@@ -78,7 +79,17 @@ export function createEditorStore(initial: DesignDetail, revision: number, onUna
       const existing = pending.findIndex(({ key }) => key === operation.key);
       if (existing >= 0) pending[existing] = operation;
       else pending.push(operation);
+      // A failed or conflicting save stays visible; later edits wait behind it
+      // until the customer chooses Retry, Review latest or Apply mine.
+      if (get().status === "conflict" || get().status === "error") return;
       set({ status: "unsaved", requestId: undefined, message: undefined });
+      void drain();
+    };
+    // Runs read the latest local state, so a queued edit with the same key
+    // already carries the failed operation's intent.
+    const resume = (operation: Operation, patch: Partial<EditorState> = {}) => {
+      if (!pending.some(({ key }) => key === operation.key)) pending.unshift(operation);
+      set({ ...patch, status: "unsaved", requestId: undefined, message: undefined });
       void drain();
     };
     return {
@@ -104,16 +115,27 @@ export function createEditorStore(initial: DesignDetail, revision: number, onUna
           return result.revision;
         } });
       },
-      addItem: (input) => enqueue({ key: "add", run: async (current) => { const result = await createDesignItem(initial.id, current, input); set(({ design }) => ({ selectedItemId: result.data.id, design: { ...design, itemCount: design.itemCount + 1, items: [...design.items, result.data] } })); return result.revision; } }),
+      addItem: (input) => enqueue({ key: `add:${++addSequence}`, run: async (current) => { const result = await createDesignItem(initial.id, current, input); set(({ design }) => ({ selectedItemId: result.data.id, design: { ...design, itemCount: design.itemCount + 1, items: [...design.items, result.data] } })); return result.revision; } }),
       removeItem: (id) => {
         const previous = get().design.items.find((item) => item.id === id);
         set(({ design }) => ({ selectedItemId: null, design: { ...design, itemCount: design.itemCount - 1, items: design.items.filter((item) => item.id !== id) } }));
-        enqueue({ key: `delete:${id}`, run: async (current) => { try { return await deleteDesignItem(initial.id, id, current); } catch (error) { if (previous) set(({ design }) => ({ design: { ...design, itemCount: design.itemCount + 1, items: [...design.items, previous] } })); throw error; } } });
+        const present = (design: DesignDetail) => design.items.some((item) => item.id === id);
+        enqueue({ key: `delete:${id}`, run: async (current) => {
+          try {
+            const next = await deleteDesignItem(initial.id, id, current);
+            // A retry runs after the failed attempt restored the item.
+            set(({ design }) => present(design) ? { design: { ...design, itemCount: design.itemCount - 1, items: design.items.filter((item) => item.id !== id) } } : {});
+            return next;
+          } catch (error) {
+            if (previous) set(({ design }) => present(design) ? {} : { design: { ...design, itemCount: design.itemCount + 1, items: [...design.items, previous] } });
+            throw error;
+          }
+        } });
       },
-      retry: () => { if (failed) { const operation = failed; failed = undefined; set({ status: "unsaved" }); pending.unshift(operation); void drain(); } },
-      reviewLatest: () => { const latest = get().conflictLatest; if (latest) { failed = undefined; pending = []; set({ design: latest.design, revision: latest.revision, conflictLatest: undefined, status: "saved", selectedItemId: null }); } },
-      applyMine: () => { const latest = get().conflictLatest; const operation = failed; if (latest && operation) { failed = undefined; set({ revision: latest.revision, conflictLatest: undefined, status: "unsaved" }); pending.unshift(operation); void drain(); } },
-      reload: async () => { const latest = await fetchRevisionedDesignDetail(initial.id); failed = undefined; pending = []; set({ design: latest.data, revision: latest.revision, status: "saved", conflictLatest: undefined, selectedItemId: null }); },
+      retry: () => { if (failed) { const operation = failed; failed = undefined; resume(operation); } },
+      reviewLatest: () => { const latest = get().conflictLatest; if (latest) { failed = undefined; pending = []; set({ design: latest.design, revision: latest.revision, conflictLatest: undefined, status: "saved", selectedItemId: null, requestId: undefined, message: undefined }); } },
+      applyMine: () => { const latest = get().conflictLatest; const operation = failed; if (latest && operation) { failed = undefined; resume(operation, { revision: latest.revision, conflictLatest: undefined }); } },
+      reload: async () => { const latest = await fetchRevisionedDesignDetail(initial.id); failed = undefined; pending = []; set({ design: latest.data, revision: latest.revision, status: "saved", conflictLatest: undefined, selectedItemId: null, requestId: undefined, message: undefined }); },
     };
   });
   return store;
