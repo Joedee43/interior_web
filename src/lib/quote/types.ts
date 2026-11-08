@@ -38,6 +38,12 @@ export interface QuoteRequest {
   decidedAt: string | null;
 }
 
+/** List rows carry no lines or charges (`lines` is []); use `lineCount` and the totals. */
+export interface QuotePage {
+  requests: QuoteRequest[];
+  nextCursor: string | null;
+}
+
 export interface QuoteSubmission {
   submissionId: string;
   requests: QuoteRequest[];

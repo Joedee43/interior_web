@@ -310,6 +310,50 @@ function seededDesigns() {
   return [main, ...extras];
 }
 
+const quoteStatuses = ["pending", "reviewing", "quoted", "accepted", "rejected", "cancelled", "declined"];
+const finalQuoteStatuses = ["accepted", "rejected", "cancelled", "declined"];
+
+// A quote request in exactly Go's detail shape (lines and charges always
+// present). Totals match the lines, as the frontend normalizer checks.
+function mockQuoteRequest({ id, status = "pending", revision = 0, expired = false, validUntil = null, submittedAt = "2026-11-01T09:00:00Z" }) {
+  const quoted = revision > 0;
+  const final = finalQuoteStatuses.includes(status);
+  return {
+    id, submission_id: `88${id.slice(2)}`, design_id: "55555555-5555-4555-8555-555555555555",
+    status, revision, final,
+    company: { id: "82000000-0000-4000-8000-000000000001", slug: "ergoseat", name: "ErgoSeat" },
+    customer: { name: demoAccount.user.full_name, email: demoAccount.user.email, phone: "+251 911 000000", delivery_address: "Bole, Addis Ababa", note: "Please deliver after 5pm." },
+    currency: "ETB", list_total_minor: 1820000, quoted_total_minor: quoted ? 1860000 : null,
+    valid_until: quoted ? validUntil : null, expired: quoted && expired,
+    company_note: quoted ? "Price includes assembly." : "", line_count: 2,
+    lines: [
+      { id: `86${id.slice(2)}`, product_id: "77777777-7777-4777-8777-777777777777", variant_id: "88888888-8888-4888-8888-888888888888", product_name: "Ergo Task Chair", product_slug: "ergo-task-chair", sku: "ERGO-GREY", options: { Colour: "Grey" }, dimensions: { width_mm: 650, depth_mm: 600, height_mm: 1100 }, quantity: 2, list_unit_price_minor: 850000, quoted_unit_price_minor: quoted ? 800000 : null, note: quoted ? "Two in stock." : "" },
+      { id: `87${id.slice(2)}`, product_id: null, variant_id: null, product_name: "Ergo Footrest", product_slug: "ergo-footrest", sku: null, options: {}, dimensions: { width_mm: 450, depth_mm: 350, height_mm: 120 }, quantity: 1, list_unit_price_minor: 120000, quoted_unit_price_minor: quoted ? 110000 : null, note: "" },
+    ],
+    charges: quoted ? [{ label: "Delivery to Bole", amount_minor: 150000 }] : [],
+    submitted_at: submittedAt, quoted_at: quoted ? "2026-11-03T10:00:00Z" : null, decided_at: final ? "2026-11-04T10:00:00Z" : null,
+  };
+}
+
+// Read-only fixtures for list/detail views. Tests that accept, reject or
+// cancel create their own request through the test-only route below.
+function seededQuoteRequests() {
+  return [
+    mockQuoteRequest({ id: "85000000-0000-4000-8000-000000000001", status: "pending", submittedAt: "2026-11-05T09:00:00Z" }),
+    mockQuoteRequest({ id: "85000000-0000-4000-8000-000000000002", status: "quoted", revision: 2, validUntil: "2099-12-31", submittedAt: "2026-11-04T09:00:00Z" }),
+    mockQuoteRequest({ id: "85000000-0000-4000-8000-000000000003", status: "quoted", revision: 1, validUntil: "2026-01-10", expired: true, submittedAt: "2026-11-03T09:00:00Z" }),
+    mockQuoteRequest({ id: "85000000-0000-4000-8000-000000000004", status: "accepted", revision: 1, validUntil: "2099-12-31", submittedAt: "2026-11-02T09:00:00Z" }),
+  ];
+}
+
+// Go list rows never include lines or charges.
+function quoteSummary(request) {
+  const summary = { ...request };
+  delete summary.lines;
+  delete summary.charges;
+  return summary;
+}
+
 export function createMockServer() {
   const accounts = new Map([[demoAccount.user.email, demoAccount]]);
   const sessions = new Map();
@@ -317,7 +361,7 @@ export function createMockServer() {
   let nextDesign = 1;
   let nextQuote = 1;
   const designs = seededDesigns();
-  const quoteRequests = [];
+  const quoteRequests = seededQuoteRequests();
   const designCursor = "  design+page==  ";
 
   function issueSession(res, account, mode = "normal") {
@@ -559,6 +603,68 @@ export function createMockServer() {
       });
       const skipped = design.items.filter((item) => !item.available).map((item) => ({ item_id: item.id, product_name: item.product.name }));
       res.writeHead(201); res.end(JSON.stringify({ submission_id: submissionId, requests, skipped })); return;
+    }
+
+    // Test-only route with no Go equivalent: each Playwright test creates its
+    // own quote, so parallel desktop/mobile runs never act on the same one.
+    if (url.pathname === "/__mock/quote-requests" && req.method === "POST") {
+      const body = await readJson(req);
+      const id = `85000000-0000-4000-8000-${String(900000 + nextQuote++).padStart(12, "0")}`;
+      const request = mockQuoteRequest({ id, status: body.status ?? "quoted", revision: body.revision ?? 1, expired: Boolean(body.expired), validUntil: body.valid_until ?? "2099-12-31", submittedAt: new Date().toISOString() });
+      quoteRequests.push(request);
+      res.writeHead(201); res.end(JSON.stringify(request)); return;
+    }
+    // Test-only: the maker sends a new revision (as PUT .../quote does in Go).
+    const reviseMatch = url.pathname.match(/^\/__mock\/quote-requests\/([^/]+)\/revise$/);
+    if (reviseMatch && req.method === "POST") {
+      const request = quoteRequests.find((entry) => entry.id === reviseMatch[1]);
+      if (!request) { res.writeHead(404); res.end(JSON.stringify(errorEnvelope("not_found", "quote request not found", "mock-revise-404"))); return; }
+      request.revision += 1; request.status = "quoted"; request.quoted_at = new Date().toISOString();
+      res.writeHead(200); res.end(JSON.stringify(request)); return;
+    }
+
+    if (url.pathname === "/v1/quote-requests" && req.method === "GET") {
+      const session = sessions.get(sessionToken(req));
+      if (!session) { res.writeHead(401); res.end(JSON.stringify(errorEnvelope("unauthenticated", "authentication required", "mock-quotes-401"))); return; }
+      const status = url.searchParams.get("status");
+      const limit = Number(url.searchParams.get("limit") ?? 20);
+      const cursor = url.searchParams.get("cursor");
+      const offset = cursor === null ? 0 : Number(/^quote-page:(\d+)$/.exec(cursor)?.[1] ?? NaN);
+      const details = {};
+      if (status !== null && !quoteStatuses.includes(status)) details.status = "must be pending, reviewing, quoted, accepted, rejected, cancelled or declined";
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) details.limit = "must be between 1 and 100";
+      if (!Number.isInteger(offset)) details.cursor = "is invalid; pass next_cursor from the previous page unchanged";
+      if (Object.keys(details).length) { res.writeHead(400); res.end(JSON.stringify(errorEnvelope("validation_failed", "validation failed", "mock-quotes-400", details))); return; }
+      const mine = quoteRequests
+        .filter((entry) => entry.customer.email === session.account.user.email && (status === null || entry.status === status))
+        .sort((a, b) => b.submitted_at.localeCompare(a.submitted_at) || b.id.localeCompare(a.id));
+      const page = mine.slice(offset, offset + limit);
+      const next = offset + limit < mine.length ? `quote-page:${offset + limit}` : null;
+      res.writeHead(200); res.end(JSON.stringify({ requests: page.map(quoteSummary), next_cursor: next })); return;
+    }
+
+    const quoteMatch = url.pathname.match(/^\/v1\/quote-requests\/([^/]+)(?:\/(accept|reject|cancel))?$/);
+    if (quoteMatch && ((req.method === "GET" && !quoteMatch[2]) || (req.method === "POST" && quoteMatch[2]))) {
+      const session = sessions.get(sessionToken(req));
+      if (!session) { res.writeHead(401); res.end(JSON.stringify(errorEnvelope("unauthenticated", "authentication required", "mock-quote-detail-401"))); return; }
+      const request = quoteRequests.find((entry) => entry.id === quoteMatch[1] && entry.customer.email === session.account.user.email);
+      if (!request) { res.writeHead(404); res.end(JSON.stringify(errorEnvelope("not_found", "quote request not found", "mock-quote-detail-404"))); return; }
+      const action = quoteMatch[2];
+      if (!action) { res.writeHead(200); res.end(JSON.stringify(request)); return; }
+      // Same order as Go: body check, then status, then revision, then expiry.
+      let revision;
+      if (action === "accept") {
+        const body = await readJson(req).catch(() => ({}));
+        if (!Number.isInteger(body.revision)) { res.writeHead(400); res.end(JSON.stringify(errorEnvelope("validation_failed", "validation failed", "mock-accept-400", { revision: "required: the revision you are accepting" }))); return; }
+        revision = body.revision;
+      }
+      const allowed = { accept: ["quoted"], reject: ["quoted"], cancel: ["pending", "reviewing", "quoted"] }[action];
+      if (!allowed.includes(request.status)) { res.writeHead(409); res.end(JSON.stringify(errorEnvelope("invalid_transition", "the request's status does not allow this action", "mock-quote-409"))); return; }
+      if (action === "accept" && revision !== request.revision) { res.writeHead(409); res.end(JSON.stringify(errorEnvelope("stale_revision", "the quote was revised; review the latest revision before accepting", "mock-quote-stale"))); return; }
+      if (action === "accept" && request.expired) { res.writeHead(409); res.end(JSON.stringify(errorEnvelope("quote_expired", "this quote is past its valid-until date", "mock-quote-expired"))); return; }
+      request.status = { accept: "accepted", reject: "rejected", cancel: "cancelled" }[action];
+      request.final = true; request.decided_at = new Date().toISOString();
+      res.writeHead(200); res.end(JSON.stringify(request)); return;
     }
 
     if (url.pathname === "/v1/designs" && req.method === "GET") {

@@ -1,7 +1,35 @@
 # Project status — interior_web
 
-**Updated:** 2026-11-08 · **Branch:** `main` (Phase 8 merged locally, not pushed yet) ·
-**Backend contract:** `/v1`, OpenAPI 1.0.0
+**Updated:** 2026-11-08 · **Branch:** `main` (Phase 8 merged locally, not pushed yet; Phase 9 is
+uncommitted work awaiting review and "merge") · **Backend contract:** `/v1`, OpenAPI 1.0.0
+
+## Phase 9: customer quote management (built 2026-11-08, awaiting merge)
+
+- `/quotes`: protected, noindex list of the customer's requests, newest first. It has a
+  single-status filter kept in the URL (`?status=quoted`), "Load more" with the opaque cursor
+  passed back unchanged, list estimate vs quoted total, an expired tag, and empty/error states.
+- `/quotes/[requestID]`: lines with list vs quoted prices and maker line notes, charges, totals,
+  valid-until/expiry, the maker's note (or decline reason), the customer's contact snapshot,
+  and a link to the room. An unknown or foreign request is a 404.
+- Actions follow the backend transition table (`availableActions` in `src/lib/quote/status.ts`):
+  Accept only when quoted and unexpired; Reject when quoted, even if expired; Cancel while
+  pending, reviewing or quoted. Each action is confirmed in a dialog. Accept sends the revision
+  shown in that dialog. `stale_revision`, `quote_expired` and `invalid_transition` refetch the
+  request and explain what changed. Network failures refetch because the outcome is unknown.
+- Entry points: "My quotes" in the account nav (hidden on phones), a card on `/account`, and a
+  link on the quote submission success page.
+- The mock API mirrors Go: list rows have no `lines`/`charges`, detail always has both, the
+  accept checks run in Go's order, and requests are owner-scoped. Four read-only seeded quotes
+  exist (pending, quoted r2, expired, accepted). The test-only `POST /__mock/quote-requests` and
+  `/__mock/quote-requests/:id/revise` routes give each Playwright test its own quote.
+- **Backend dependency:** Phase 9 needs the 2026-11-08 `interior_api` contract fix. Go used to
+  omit empty `charges` from quote detail responses, which the strict normalizer rejects. That
+  also broke Phase 8's real submission success screen. The same fix makes Go always send
+  `is_primary`, `materials` and `variants` on media.
+
+Verification on 2026-11-08: lint (0 warnings), typecheck, and Vitest (248 tests, 56 files) pass.
+I mutation-checked the expiry rule. **Not run yet:** Playwright (`tests/e2e/quote-management.spec.ts`
+is written), `npm run build`, `npm run api:check`, and a manual run against the real Go API.
 
 ## Fixes after Phase 8 (2026-11-08)
 
@@ -60,7 +88,7 @@ Verification completed on 2026-11-06:
 6. Design creation/list/read-only room rendering (Complete on `main`).
 7. Interactive editor and auto-save (Complete on `main`).
 8. Estimates and quote submission (Complete on `main`).
-9. Customer quote management.
+9. Customer quote management (Built, awaiting review and merge).
 10. Accessibility, performance and production hardening.
 
 Each phase is separately approved, implemented and merged. Seller/admin UI,

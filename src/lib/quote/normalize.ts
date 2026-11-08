@@ -1,4 +1,4 @@
-import type { QuoteLine, QuoteRequest, QuoteStatus, QuoteSubmission } from "./types";
+import type { QuoteLine, QuotePage, QuoteRequest, QuoteStatus, QuoteSubmission } from "./types";
 
 export class QuoteContractError extends Error { constructor(message: string) { super(message); this.name = "QuoteContractError"; } }
 
@@ -50,6 +50,15 @@ export function normalizeQuoteRequest(value: unknown, field = "response", requir
     currency: currency(request.currency, `${field}.currency`), listTotalMinor, quotedTotalMinor, validUntil: nullableDate(request.valid_until, `${field}.valid_until`), expired: bool(request.expired, `${field}.expired`), companyNote: string(request.company_note, `${field}.company_note`, true), lineCount, lines, charges,
     submittedAt: dateTime(request.submitted_at, `${field}.submitted_at`), quotedAt: nullableDateTime(request.quoted_at, `${field}.quoted_at`), decidedAt: nullableDateTime(request.decided_at, `${field}.decided_at`),
   };
+}
+
+export function normalizeQuotePage(value: unknown): QuotePage {
+  const page = record(value, "response");
+  if (!Array.isArray(page.requests)) fail("response.requests must be an array");
+  const requests = page.requests.map((entry, index) => normalizeQuoteRequest(entry, `response.requests[${index}]`, false));
+  if (new Set(requests.map(({ id }) => id)).size !== requests.length) fail("response.requests contains duplicate IDs");
+  const nextCursor = page.next_cursor === null ? null : string(page.next_cursor, "response.next_cursor");
+  return { requests, nextCursor };
 }
 
 export function normalizeQuoteSubmission(value: unknown, expectedDesignId?: string): QuoteSubmission {

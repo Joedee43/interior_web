@@ -38,6 +38,10 @@ export function AccountNav() {
       <Button asChild variant="quiet" size="sm">
         <Link href="/designs" aria-label="My designs"><span className="sm:hidden">Rooms</span><span className="hidden sm:inline">My designs</span></Link>
       </Button>
+      {/* Phones reach quotes from the account page; the header has no room. */}
+      <Button asChild variant="quiet" size="sm" className="hidden sm:inline-flex">
+        <Link href="/quotes">My quotes</Link>
+      </Button>
       <Button asChild variant="quiet" size="sm">
         <Link href="/account">{firstName}</Link>
       </Button>

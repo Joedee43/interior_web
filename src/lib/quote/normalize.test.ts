@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeQuoteSubmission } from "./normalize";
+import { normalizeQuotePage, normalizeQuoteRequest, normalizeQuoteSubmission } from "./normalize";
 
 const designId = "11111111-1111-4111-8111-111111111111";
 const submissionId = "22222222-2222-4222-8222-222222222222";
@@ -13,6 +13,8 @@ const request = {
   charges: [], submitted_at: "2026-11-06T10:00:00Z", quoted_at: null, decided_at: null,
 };
 const submission = { submission_id: submissionId, requests: [request], skipped: [{ item_id: "77777777-7777-4777-8777-777777777777", product_name: "Unavailable table" }] };
+// Go list rows carry no lines or charges.
+const summaryRow = Object.fromEntries(Object.entries(request).filter(([key]) => key !== "lines" && key !== "charges"));
 
 describe("quote submission normalization", () => {
   it("normalizes a new seller-split submission", () => {
@@ -38,5 +40,28 @@ describe("quote submission normalization", () => {
     expect(() => normalizeQuoteSubmission({ ...submission, requests: [request, { ...request, id: "88888888-8888-4888-8888-888888888888" }] }, designId)).toThrow(/duplicate/);
     expect(() => normalizeQuoteSubmission({ ...submission, skipped: [submission.skipped[0], submission.skipped[0]] }, designId)).toThrow(/duplicate/);
   });
+
+  // The Go API once omitted empty charges from detail responses; this is the
+  // check that turned that into a visible failure.
+  it("requires lines and charges on detail responses", () => {
+    expect(() => normalizeQuoteRequest(summaryRow)).toThrow(/detail arrays are required/);
+  });
+});
+
+describe("quote page normalization", () => {
+  it("normalizes summary rows and keeps the opaque cursor", () => {
+    const page = normalizeQuotePage({ requests: [summaryRow], next_cursor: "  page+2==  " });
+    expect(page.nextCursor).toBe("  page+2==  ");
+    expect(page.requests[0]).toMatchObject({ id: request.id, lineCount: 1, listTotalMinor: 2000, lines: [], charges: [] });
+  });
+
+  it("accepts the last page", () => expect(normalizeQuotePage({ requests: [], next_cursor: null })).toEqual({ requests: [], nextCursor: null }));
+
+  it.each([
+    [{ requests: [summaryRow, summaryRow], next_cursor: null }, /duplicate IDs/],
+    [{ requests: [summaryRow], next_cursor: "" }, /next_cursor/],
+    [{ requests: "nope", next_cursor: null }, /requests must be an array/],
+    [{ requests: [{ ...summaryRow, status: "archived" }], next_cursor: null }, /status is invalid/],
+  ])("rejects malformed pages", (page, pattern) => expect(() => normalizeQuotePage(page)).toThrow(pattern));
 });
 
