@@ -32,9 +32,10 @@ test.describe("Customer quote management", () => {
     await expect(page.getByRole("heading", { name: "My quotes" })).toBeVisible();
     await expect(page.getByRole("link", { name: /ErgoSeat/ }).first()).toBeVisible();
 
-    await page.getByRole("link", { name: "Quote received" }).click();
+    const filters = page.getByRole("navigation", { name: "Filter quotes by status" });
+    await filters.getByRole("link", { name: "Quote received" }).click();
     await expect(page).toHaveURL("/quotes?status=quoted");
-    await expect(page.getByRole("link", { name: "Quote received" })).toHaveAttribute("aria-current", "page");
+    await expect(filters.getByRole("link", { name: "Quote received" })).toHaveAttribute("aria-current", "page");
     const cards = page.locator('a[href^="/quotes/"]');
     await expect(cards.first()).toBeVisible();
     for (const card of await cards.all()) await expect(card).toContainText("Quote received");
@@ -76,10 +77,12 @@ test.describe("Customer quote management", () => {
     expect(revised.ok()).toBe(true);
     await confirm(page, "Accept quote");
 
-    await expect(page.getByRole("alert")).toContainText(/revised this quote/);
-    await expect(page.getByRole("alert")).toContainText("mock-quote-stale");
+    // Next.js also renders a hidden role="alert" route announcer on every page.
+    const alert = page.getByRole("alert").filter({ hasText: /revised this quote/ });
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText("mock-quote-stale");
     await expect(page.getByText(/Quote revision 2/)).toBeVisible();
-    await expect(page.getByText("Quote received")).toBeVisible();
+    await expect(page.getByText("Quote received", { exact: true })).toBeVisible();
   });
 
   test("an expired quote can be rejected but not accepted", async ({ page }) => {
