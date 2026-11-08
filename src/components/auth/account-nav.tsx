@@ -10,7 +10,7 @@ export function AccountNav() {
   const account = useAccountQuery();
 
   if (account.isPending) {
-    return <div aria-label="Loading account" className="h-9 w-48 animate-pulse rounded-full bg-ink/10" />;
+    return <div role="status" aria-label="Loading account" className="h-9 w-48 animate-pulse rounded-full bg-ink/10" />;
   }
   if (account.isError) {
     return (
@@ -36,7 +36,7 @@ export function AccountNav() {
   return (
     <div className="flex items-center gap-1 sm:gap-2">
       <Button asChild variant="quiet" size="sm">
-        <Link href="/designs" aria-label="My designs"><span className="sm:hidden">Rooms</span><span className="hidden sm:inline">My designs</span></Link>
+        <Link href="/designs" aria-label="My designs"><span className="sm:hidden">Designs</span><span className="hidden sm:inline">My designs</span></Link>
       </Button>
       {/* Phones reach quotes from the account page; the header has no room. */}
       <Button asChild variant="quiet" size="sm" className="hidden sm:inline-flex">

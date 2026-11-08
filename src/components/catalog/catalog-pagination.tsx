@@ -32,7 +32,7 @@ export function CatalogPagination({
           </span>
         </Link>
       </Button>
-      <p className="text-xs text-ink/50">
+      <p className="text-xs text-ink-muted">
         Use browser back to return to prior pages.
       </p>
     </nav>

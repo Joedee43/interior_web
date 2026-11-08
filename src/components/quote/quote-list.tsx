@@ -40,7 +40,7 @@ export function QuoteList({ status, initialPage }: { status?: QuoteStatus; initi
         <StatusFilter status={status} />
         <div className="rounded-3xl border border-dashed border-ink/20 bg-canvas-deep/20 px-6 py-16 text-center">
           <h2 className="font-serif text-3xl">{status ? `No requests are “${quoteStatusLabels[status]}”` : "No quote requests yet"}</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-ink/60">Plan a room, then request quotes from its makers. Each maker’s answer appears here.</p>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-ink-muted">Plan a room, then request quotes from its makers. Each maker’s answer appears here.</p>
           <Button asChild className="mt-7"><Link href={status ? "/quotes" : "/designs"}>{status ? "Show all requests" : "Open my designs"}</Link></Button>
         </div>
       </div>
@@ -50,7 +50,7 @@ export function QuoteList({ status, initialPage }: { status?: QuoteStatus; initi
   return (
     <div>
       <StatusFilter status={status} />
-      {query.isFetching && !query.isFetchingNextPage && <p className="mb-4 text-xs text-ink/50" role="status">Refreshing quotes…</p>}
+      {query.isFetching && !query.isFetchingNextPage && <p className="mb-4 text-xs text-ink-muted" role="status">Refreshing quotes…</p>}
       <ul className="grid gap-5 md:grid-cols-2">
         {requests.map((request) => (
           <li key={request.id}>
@@ -58,10 +58,10 @@ export function QuoteList({ status, initialPage }: { status?: QuoteStatus; initi
               <QuoteStatusBadge status={request.status} expired={request.expired} />
               <h2 className="mt-4 font-serif text-2xl">{request.company.name}</h2>
               <dl className="mt-5 grid grid-cols-2 gap-4 text-xs">
-                <div><dt className="text-ink/50">{request.quotedTotalMinor === null ? "List estimate" : "Quoted total"}</dt><dd className="mt-1 text-sm font-medium">{formatMoney(request.quotedTotalMinor ?? request.listTotalMinor, request.currency)}</dd></div>
-                <div><dt className="text-ink/50">Items</dt><dd className="mt-1 text-sm font-medium">{request.lineCount}</dd></div>
-                <div><dt className="text-ink/50">Sent</dt><dd className="mt-1 font-medium">{formatQuoteDate(request.submittedAt)}</dd></div>
-                {request.validUntil && <div><dt className="text-ink/50">Valid until</dt><dd className="mt-1 font-medium">{formatValidUntil(request.validUntil)}</dd></div>}
+                <div><dt className="text-ink-muted">{request.quotedTotalMinor === null ? "List estimate" : "Quoted total"}</dt><dd className="mt-1 text-sm font-medium">{formatMoney(request.quotedTotalMinor ?? request.listTotalMinor, request.currency)}</dd></div>
+                <div><dt className="text-ink-muted">Items</dt><dd className="mt-1 text-sm font-medium">{request.lineCount}</dd></div>
+                <div><dt className="text-ink-muted">Sent</dt><dd className="mt-1 font-medium">{formatQuoteDate(request.submittedAt)}</dd></div>
+                {request.validUntil && <div><dt className="text-ink-muted">Valid until</dt><dd className="mt-1 font-medium">{formatValidUntil(request.validUntil)}</dd></div>}
               </dl>
             </Link>
           </li>

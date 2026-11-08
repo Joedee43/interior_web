@@ -14,7 +14,7 @@ import { ProductGallery } from "./product-gallery";
 const ProductPreview = dynamic(() => import("./product-preview"), {
   ssr: false,
   loading: () => (
-    <div className="aspect-[4/3] animate-pulse rounded-2xl border border-ink/10 bg-canvas-deep/40" aria-label="Loading 3D preview" />
+    <div className="aspect-[4/3] animate-pulse rounded-2xl border border-ink/10 bg-canvas-deep/40" role="status" aria-label="Loading 3D preview" />
   ),
 });
 
@@ -79,7 +79,7 @@ export function ProductMediaViewer({ product }: { product: ProductDetail }) {
             onClick={() => selectMode(item)}
             className={cn(
               "rounded-full px-4 py-2 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta",
-              mode === item ? "bg-canvas text-ink shadow-sm" : "text-ink/60 hover:text-ink",
+              mode === item ? "bg-canvas text-ink shadow-sm" : "text-ink-muted hover:text-ink",
             )}
           >
             {item === "photos" ? "Photos" : "3D view"}

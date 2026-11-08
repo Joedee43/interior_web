@@ -18,12 +18,12 @@ export function DesignList({ initialPage, templates }: { initialPage: DesignPage
   }
 
   if (designs.length === 0) {
-    return <div className="rounded-3xl border border-dashed border-ink/20 bg-canvas-deep/20 px-6 py-16 text-center"><h2 className="font-serif text-3xl">Start with an empty room</h2><p className="mx-auto mt-3 max-w-md text-sm leading-7 text-ink/60">Choose a curated room or enter your own dimensions. Furniture placement arrives in the editor next.</p><Button asChild className="mt-7"><Link href="/designs/new">Create your first design</Link></Button></div>;
+    return <div className="rounded-3xl border border-dashed border-ink/20 bg-canvas-deep/20 px-6 py-16 text-center"><h2 className="font-serif text-3xl">Start with an empty room</h2><p className="mx-auto mt-3 max-w-md text-sm leading-7 text-ink-muted">Choose a curated room or enter your own dimensions. Furniture placement arrives in the editor next.</p><Button asChild className="mt-7"><Link href="/designs/new">Create your first design</Link></Button></div>;
   }
 
   return (
     <div>
-      {query.isFetching && !query.isFetchingNextPage && <p className="mb-4 text-xs text-ink/50" role="status">Refreshing designs…</p>}
+      {query.isFetching && !query.isFetchingNextPage && <p className="mb-4 text-xs text-ink-muted" role="status">Refreshing designs…</p>}
       <ul className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {designs.map((design) => (
           <li key={design.id}>
@@ -31,10 +31,10 @@ export function DesignList({ initialPage, templates }: { initialPage: DesignPage
               <p className="eyebrow text-terracotta">{design.templateId ? templateNames.get(design.templateId) ?? "Room template" : "Custom room"}</p>
               <h2 className="mt-3 font-serif text-2xl">{design.name}</h2>
               <dl className="mt-6 grid grid-cols-2 gap-4 text-xs">
-                <div><dt className="text-ink/50">Dimensions</dt><dd className="mt-1 font-medium">{formatDimensions({ width_mm: design.room.widthMm, depth_mm: design.room.depthMm, height_mm: design.room.heightMm })}</dd></div>
-                <div><dt className="text-ink/50">Furniture</dt><dd className="mt-1 font-medium">{design.itemCount} {design.itemCount === 1 ? "item" : "items"}</dd></div>
+                <div><dt className="text-ink-muted">Dimensions</dt><dd className="mt-1 font-medium">{formatDimensions({ width_mm: design.room.widthMm, depth_mm: design.room.depthMm, height_mm: design.room.heightMm })}</dd></div>
+                <div><dt className="text-ink-muted">Furniture</dt><dd className="mt-1 font-medium">{design.itemCount} {design.itemCount === 1 ? "item" : "items"}</dd></div>
               </dl>
-              <p className="mt-6 text-xs text-ink/45">Updated {new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(design.updatedAt))}</p>
+              <p className="mt-6 text-xs text-ink-muted">Updated {new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(design.updatedAt))}</p>
             </Link>
           </li>
         ))}

@@ -12,12 +12,15 @@ export function SiteHeader() {
         <Link
           href="/"
           className="flex items-center gap-3 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-terracotta"
-          aria-label="Interior home"
         >
-          <span className="grid size-9 place-items-center rounded-full bg-ink text-sm font-semibold text-canvas">
+          {/* The name comes from the text, not aria-label: an aria-label must
+              contain all visible text, and the "I" monogram is visible. The
+              wordmark is screen-reader-only on phones, visible from sm up. */}
+          <span aria-hidden="true" className="grid size-9 place-items-center rounded-full bg-ink text-sm font-semibold text-canvas">
             I
           </span>
-          <span className="hidden font-serif text-xl tracking-[-0.03em] sm:inline">Interior</span>
+          <span className="sr-only font-serif text-xl tracking-[-0.03em] sm:not-sr-only">Interior</span>
+          <span className="sr-only"> home</span>
         </Link>
 
         <nav

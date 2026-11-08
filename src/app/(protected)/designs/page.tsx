@@ -23,5 +23,5 @@ export default async function DesignsPage() {
     else throw error;
   }
   if (failure) return <DesignFailure requestId={failure.requestId} retryUrl="/designs" />;
-  return <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8"><div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="eyebrow text-terracotta">Saved rooms</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.05em]">My designs</h1><p className="mt-3 text-sm text-ink/60">Rooms are ordered by their most recent change.</p></div><Button asChild size="lg"><Link href="/designs/new">Create a design</Link></Button></div><DesignList initialPage={initialPage!} templates={templates!} /></div>;
+  return <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8"><div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="eyebrow text-terracotta">Saved rooms</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.05em]">My designs</h1><p className="mt-3 text-sm text-ink-muted">Rooms are ordered by their most recent change.</p></div><Button asChild size="lg"><Link href="/designs/new">Create a design</Link></Button></div><DesignList initialPage={initialPage!} templates={templates!} /></div>;
 }

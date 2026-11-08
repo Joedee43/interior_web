@@ -51,7 +51,7 @@ export function AuthField({
             }
             aria-pressed={showPassword}
             data-testid={`${id}-toggle-password`}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-ink/50 transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
           >
             {showPassword ? (
               <svg

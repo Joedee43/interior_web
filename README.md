@@ -103,10 +103,23 @@ submission is split into an independent pending request for each maker.
 Quote submission is deliberately non-retrying: an interrupted response may
 have reached the API, so the form retains the customer’s input and asks them to
 confirm before an explicit retry. Estimates are not final quotes, orders, or
-payments. Quote history and customer decisions are delivered in Phase 9.
+payments. Quote history and customer decisions live under `/quotes` (Phase 9).
 
 See the backend's `docs/FRONTEND_HANDOFF.md` for the complete cookie, proxy,
-OpenAPI, coordinate, GLB and versioning contract.
+OpenAPI, coordinate, GLB and versioning contract, and its `docs/DEPLOYMENT.md`
+for running this app in production (Caddy → `next start` → Go). Build with the
+production environment loaded: the `/v1` rewrite target and `NEXT_PUBLIC_*`
+values are fixed at build time.
+
+## Accessibility and security checks
+
+- `tests/e2e/accessibility.spec.ts` scans every main page with axe
+  (WCAG 2.1 A/AA) and fails on any violation. Secondary text uses the solid
+  `text-ink-muted` colour, never `text-ink/NN` opacity, which fails contrast.
+- `tests/e2e/performance.spec.ts` proves three.js loads only where 3D is shown.
+- `next.config.ts` sends a CSP (no nonces: Partial Prerendering is in use) and
+  hardening headers on every page; `tests/e2e/security-headers.spec.ts` checks
+  them.
 
 ## Phase workflow
 

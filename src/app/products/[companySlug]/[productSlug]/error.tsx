@@ -31,7 +31,7 @@ export default function ProductDetailError({
         </p>
 
         {error.digest && (
-          <div className="mt-5 rounded-lg bg-canvas px-4 py-2 font-mono text-xs text-ink/60 border border-ink/10">
+          <div className="mt-5 rounded-lg bg-canvas px-4 py-2 font-mono text-xs text-ink-muted border border-ink/10">
             Error reference:{" "}
             <span className="text-ink select-all">{error.digest}</span>
           </div>

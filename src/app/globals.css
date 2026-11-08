@@ -4,8 +4,14 @@
   --canvas: #f7f3eb;
   --canvas-deep: #eee7da;
   --ink: #1b1813;
+  /* Secondary text. A solid colour, not ink at reduced opacity: it measures
+     5.47:1 on canvas and at least 4.67:1 on canvas-deep and the tinted sand
+     and terracotta panels, so it meets WCAG AA (4.5:1) everywhere it is used. */
+  --ink-muted: #66625c;
   --moss: #354535;
-  --terracotta: #a94f35;
+  /* Darkened from #a94f35 so terracotta text meets WCAG AA (4.5:1) on canvas,
+     canvas-deep and its own 10–12% tints (worst case 4.68:1). */
+  --terracotta: #97442d;
   --sand: #d9c7a5;
 }
 
@@ -13,6 +19,7 @@
   --color-canvas: var(--canvas);
   --color-canvas-deep: var(--canvas-deep);
   --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
   --color-moss: var(--moss);
   --color-terracotta: var(--terracotta);
   --color-sand: var(--sand);

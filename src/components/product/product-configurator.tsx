@@ -92,7 +92,7 @@ export function ProductConfigurator({ product }: ProductConfiguratorProps) {
 
         {selectedVariant && (
           <p
-            className="font-mono text-xs text-ink/55"
+            className="font-mono text-xs text-ink-muted"
             data-testid="selected-variant-sku"
           >
             SKU: <span className="text-ink/80">{selectedVariant.sku}</span>

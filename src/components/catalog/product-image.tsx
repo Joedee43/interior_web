@@ -17,7 +17,7 @@ export function ProductImage({ src, alt, className }: ProductImageProps) {
     return (
       <div
         className={cn(
-          "grid size-full place-items-center bg-canvas-deep/70 p-6 text-center text-ink/45",
+          "grid size-full place-items-center bg-canvas-deep/70 p-6 text-center text-ink-muted",
           className,
         )}
         data-testid="product-image-fallback"

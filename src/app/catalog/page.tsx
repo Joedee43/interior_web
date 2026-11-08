@@ -91,7 +91,7 @@ async function CatalogContent({ searchParams }: CatalogPageProps) {
         <CatalogEmpty params={params} />
       ) : (
         <>
-          <div className="mb-4 text-xs font-semibold tracking-wider text-ink/50 uppercase">
+          <div className="mb-4 text-xs font-semibold tracking-wider text-ink-muted uppercase">
             Showing {products.length}{" "}
             {products.length === 1 ? "piece" : "pieces"}
           </div>

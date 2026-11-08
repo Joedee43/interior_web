@@ -78,7 +78,10 @@ function LoadedModel({
   onFailure,
 }: Omit<ProductPreviewProps, "retryKey">) {
   const model = product.model!;
-  const gltf = useGLTF(model.url);
+  // false: no Draco decoder, which drei would fetch from Google's CDN (the
+  // CSP blocks it). Product GLBs must be self-contained; a Draco model fails
+  // into the image fallback.
+  const gltf = useGLTF(model.url, false);
   const invalidate = useThree(({ invalidate }) => invalidate);
   const scene = useMemo(() => {
     const cloned = skeletonClone(gltf.scene);
@@ -201,7 +204,7 @@ export default function ProductPreview({
 
   if (!webGL2Available) {
     return (
-      <div className="aspect-[4/3] rounded-2xl border border-ink/10 bg-canvas-deep/40" aria-label="3D preview unavailable" />
+      <div className="aspect-[4/3] rounded-2xl border border-ink/10 bg-canvas-deep/40" role="img" aria-label="3D preview unavailable" />
     );
   }
 
@@ -214,6 +217,7 @@ export default function ProductPreview({
           dpr={[1, 2]}
           camera={{ position: [1.8, 1.35, 2.2], fov: 42, near: 0.01, far: 100 }}
           gl={{ antialias: true, alpha: false }}
+          role="img"
           aria-label={`Interactive 3D preview of ${product.name}`}
         >
           <ContextLossGuard onFailure={onFailure} />

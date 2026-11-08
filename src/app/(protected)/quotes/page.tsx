@@ -23,5 +23,5 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
     else throw error;
   }
   if (failure) return <QuoteFailure requestId={failure.requestId} retryUrl={returnPath} />;
-  return <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8"><div className="mb-8"><p className="eyebrow text-terracotta">Maker responses</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.05em]">My quotes</h1><p className="mt-3 max-w-2xl text-sm text-ink/60">Every maker answers separately. Newest requests come first.</p></div><QuoteList key={status ?? "all"} status={status} initialPage={initialPage!} /></div>;
+  return <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8"><div className="mb-8"><p className="eyebrow text-terracotta">Maker responses</p><h1 className="mt-3 font-serif text-5xl tracking-[-0.05em]">My quotes</h1><p className="mt-3 max-w-2xl text-sm text-ink-muted">Every maker answers separately. Newest requests come first.</p></div><QuoteList key={status ?? "all"} status={status} initialPage={initialPage!} /></div>;
 }

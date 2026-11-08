@@ -18,7 +18,7 @@ export function AccountSummary({ account }: { account: Account }) {
           <h1 className="font-serif text-5xl tracking-[-0.05em]">
             {account.user.fullName}
           </h1>
-          <p className="mt-3 text-ink/60">{account.user.email}</p>
+          <p className="mt-3 text-ink-muted">{account.user.email}</p>
         </div>
         <LogoutButton />
       </div>
@@ -28,11 +28,11 @@ export function AccountSummary({ account }: { account: Account }) {
           <h2 className="font-serif text-2xl">Account details</h2>
           <dl className="mt-5 space-y-4 text-sm">
             <div>
-              <dt className="text-ink/50">Email</dt>
+              <dt className="text-ink-muted">Email</dt>
               <dd className="mt-1 font-medium">{account.user.email}</dd>
             </div>
             <div>
-              <dt className="text-ink/50">Member since</dt>
+              <dt className="text-ink-muted">Member since</dt>
               <dd className="mt-1 font-medium">{joined}</dd>
             </div>
           </dl>
@@ -48,7 +48,7 @@ export function AccountSummary({ account }: { account: Account }) {
                   className="flex items-center justify-between gap-4 rounded-xl bg-canvas p-4 text-sm"
                 >
                   <span className="font-medium">{entry.company.name}</span>
-                  <span className="text-ink/55">
+                  <span className="text-ink-muted">
                     {entry.role === "company_admin"
                       ? "Company admin"
                       : "Company staff"}
@@ -57,7 +57,7 @@ export function AccountSummary({ account }: { account: Account }) {
               ))}
             </ul>
           ) : (
-            <p className="mt-5 text-sm leading-6 text-ink/60">
+            <p className="mt-5 text-sm leading-6 text-ink-muted">
               This is a customer account with no active company memberships.
             </p>
           )}

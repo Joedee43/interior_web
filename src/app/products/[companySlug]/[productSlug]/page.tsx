@@ -96,7 +96,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
         {/* Accessible Breadcrumbs */}
         <nav
           aria-label="Breadcrumbs"
-          className="mb-8 flex flex-wrap items-center gap-2 text-xs text-ink/60"
+          className="mb-8 flex flex-wrap items-center gap-2 text-xs text-ink-muted"
         >
           <Link
             href="/"
@@ -189,12 +189,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
             {/* Product Specifications */}
             <div className="rounded-2xl border border-ink/10 bg-canvas-deep/20 p-5">
-              <h2 className="text-xs font-medium uppercase tracking-wider text-ink/55">
+              <h2 className="text-xs font-medium uppercase tracking-wider text-ink-muted">
                 Specifications
               </h2>
               <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 text-xs">
                 <div>
-                  <dt className="text-ink/50">Dimensions</dt>
+                  <dt className="text-ink-muted">Dimensions</dt>
                   <dd className="mt-1 font-mono font-medium text-ink">
                     {product.formattedDimensions}
                   </dd>
@@ -202,7 +202,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
                 {product.formattedWeight && (
                   <div>
-                    <dt className="text-ink/50">Weight</dt>
+                    <dt className="text-ink-muted">Weight</dt>
                     <dd className="mt-1 font-mono font-medium text-ink">
                       {product.formattedWeight}
                     </dd>
@@ -210,14 +210,14 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 )}
 
                 <div>
-                  <dt className="text-ink/50">Category</dt>
+                  <dt className="text-ink-muted">Category</dt>
                   <dd className="mt-1 font-medium text-ink">
                     {product.category.name}
                   </dd>
                 </div>
 
                 <div>
-                  <dt className="text-ink/50">Maker</dt>
+                  <dt className="text-ink-muted">Maker</dt>
                   <dd className="mt-1 font-medium text-ink">
                     {product.company.name}
                   </dd>

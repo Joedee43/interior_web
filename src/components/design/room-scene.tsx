@@ -24,7 +24,10 @@ function Placeholder({ item }: { item: DesignItem }) {
 }
 
 function LoadedFurniture({ item }: { item: DesignItem }) {
-  const gltf = useGLTF(item.product.modelUrl!);
+  // false: no Draco decoder, which drei would fetch from Google's CDN (the
+  // CSP blocks it). Product GLBs must be self-contained; a Draco model fails
+  // into the placeholder box.
+  const gltf = useGLTF(item.product.modelUrl!, false);
   const invalidate = useThree(({ invalidate }) => invalidate);
   const [failure, setFailure] = useState<Error>();
   const { scene, bounds } = useMemo(() => {
@@ -137,5 +140,5 @@ function Scene({ design, controlsRef, onFailure, editing }: { design: DesignDeta
 
 export default function RoomScene({ design, onFailure, editing }: { design: DesignDetail; onFailure: () => void; editing?: EditingControls }) {
   const controls = useRef<OrbitControlsImpl>(null);
-  return <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-ink/10" data-testid="room-3d-scene"><Canvas frameloop="demand" dpr={[1, 2]} shadows camera={{ position: [5, 5, 7], fov: 45, near: 0.01, far: 200 }} aria-label={`Interactive 3D room for ${design.name}`} onPointerMissed={() => editing?.onSelect(null)}><Scene design={design} controlsRef={controls} onFailure={onFailure} editing={editing} /></Canvas><output className="sr-only" data-testid="room-variant-skus">3D variants: {design.items.map((item) => item.product.sku ?? "original").join(", ")}</output><div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-end justify-between gap-3"><p className="rounded-full bg-canvas/90 px-3 py-1.5 text-[11px] text-ink/70">{editing ? "Select and drag furniture · Drag empty space to orbit" : "Drag to orbit · Scroll or pinch to zoom · Shift-drag to pan"}</p><button type="button" onClick={() => controls.current?.reset()} className="pointer-events-auto rounded-full border border-ink/10 bg-canvas/90 px-3 py-1.5 text-xs font-medium" data-testid="reset-room-view">Reset view</button></div></div>;
+  return <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-ink/10" data-testid="room-3d-scene"><Canvas frameloop="demand" dpr={[1, 2]} shadows="percentage" camera={{ position: [5, 5, 7], fov: 45, near: 0.01, far: 200 }} role="img" aria-label={`Interactive 3D room for ${design.name}`} onPointerMissed={() => editing?.onSelect(null)}><Scene design={design} controlsRef={controls} onFailure={onFailure} editing={editing} /></Canvas><output className="sr-only" data-testid="room-variant-skus">3D variants: {design.items.map((item) => item.product.sku ?? "original").join(", ")}</output><div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-end justify-between gap-3"><p className="rounded-full bg-canvas/90 px-3 py-1.5 text-[11px] text-ink/70">{editing ? "Select and drag furniture · Drag empty space to orbit" : "Drag to orbit · Scroll or pinch to zoom · Shift-drag to pan"}</p><button type="button" onClick={() => controls.current?.reset()} className="pointer-events-auto rounded-full border border-ink/10 bg-canvas/90 px-3 py-1.5 text-xs font-medium" data-testid="reset-room-view">Reset view</button></div></div>;
 }

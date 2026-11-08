@@ -21,6 +21,26 @@ jobs:
       - run: npm run test
       - run: npm run build
 
+  # Fails when src/lib/api/generated/schema.d.ts no longer matches the backend
+  # OpenAPI spec. Its own job, so the backend checkout never sits in the
+  # folder that lint and typecheck scan.
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: Joedee43/interior_api
+          path: backend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run api:check
+        env:
+          API_SPEC_PATH: backend/internal/apidocs/openapi.yaml
+
   browser:
     runs-on: ubuntu-latest
     steps:

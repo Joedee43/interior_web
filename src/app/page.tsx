@@ -38,7 +38,7 @@ async function CategoriesList() {
 
   if (categories.length === 0) {
     return (
-      <div className="mt-12 rounded-2xl border border-dashed border-ink/15 p-8 text-center text-sm text-ink/60">
+      <div className="mt-12 rounded-2xl border border-dashed border-ink/15 p-8 text-center text-sm text-ink-muted">
         Browse all collections in the{" "}
         <Link href="/catalog" className="underline hover:text-terracotta">
           furniture catalog
@@ -57,12 +57,12 @@ async function CategoriesList() {
           className="group flex flex-col justify-between rounded-2xl border border-ink/10 bg-canvas-deep/40 p-6 transition-all duration-300 hover:border-ink/30 hover:bg-canvas hover:shadow-lg"
         >
           <div>
-            <span className="eyebrow text-ink/40">Category</span>
+            <span className="eyebrow text-ink-muted">Category</span>
             <h3 className="mt-2 font-serif text-xl text-ink group-hover:text-terracotta transition-colors">
               {category.name}
             </h3>
           </div>
-          <div className="mt-8 flex items-center justify-between text-xs font-semibold text-ink/60 group-hover:text-ink">
+          <div className="mt-8 flex items-center justify-between text-xs font-semibold text-ink-muted group-hover:text-ink">
             <span>Browse pieces</span>
             <span
               aria-hidden="true"
@@ -135,7 +135,7 @@ export default function Home() {
             </div>
             <div className="absolute bottom-8 left-8 right-8 flex items-end justify-between border-t border-canvas/25 pt-5">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-canvas/55">
+                <p className="text-xs uppercase tracking-[0.2em] text-canvas/75">
                   Spatial Room Study
                 </p>
                 <p className="mt-1 font-serif text-2xl">8 × 6 metres</p>

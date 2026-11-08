@@ -19,7 +19,7 @@ export function ProductFailure({ requestId, retryUrl }: ProductFailureProps) {
         to the catalog if the problem continues.
       </p>
       {requestId && (
-        <p className="mx-auto mt-5 w-fit rounded-lg border border-ink/10 bg-canvas px-4 py-2 font-mono text-xs text-ink/60">
+        <p className="mx-auto mt-5 w-fit rounded-lg border border-ink/10 bg-canvas px-4 py-2 font-mono text-xs text-ink-muted">
           Request ID: <span className="select-all text-ink">{requestId}</span>
         </p>
       )}

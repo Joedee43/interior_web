@@ -27,7 +27,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
       <div className="flex flex-1 flex-col justify-between p-5">
         <div>
-          <p className="text-xs font-medium tracking-wide text-ink/55 uppercase">
+          <p className="text-xs font-medium tracking-wide text-ink-muted uppercase">
             {product.company.name}
           </p>
           <h2
@@ -50,14 +50,14 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <div className="mt-6 border-t border-ink/8 pt-4">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="text-xs font-medium text-ink/50 uppercase">
+            <span className="text-xs font-medium text-ink-muted uppercase">
               From
             </span>
             <span className="font-serif text-lg font-semibold tracking-tight text-ink">
               {product.formattedPrice}
             </span>
           </div>
-          <div className="mt-1 flex items-center justify-between text-xs text-ink/55">
+          <div className="mt-1 flex items-center justify-between text-xs text-ink-muted">
             <span>Dimensions</span>
             <span className="font-mono text-[0.8rem] text-ink/75">
               {product.formattedDimensions}

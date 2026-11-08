@@ -18,7 +18,7 @@ export function CatalogEmpty({ params }: CatalogEmptyProps) {
         role="status"
         aria-live="polite"
       >
-        <div className="grid size-12 place-items-center rounded-full bg-ink/5 text-ink/60">
+        <div className="grid size-12 place-items-center rounded-full bg-ink/5 text-ink-muted">
           <svg
             className="size-6"
             viewBox="0 0 24 24"
@@ -55,7 +55,7 @@ export function CatalogEmpty({ params }: CatalogEmptyProps) {
       className="my-12 flex flex-col items-center justify-center rounded-3xl border border-ink/10 bg-canvas-deep/20 px-6 py-16 text-center"
       role="status"
     >
-      <div className="grid size-12 place-items-center rounded-full bg-ink/5 text-ink/60">
+      <div className="grid size-12 place-items-center rounded-full bg-ink/5 text-ink-muted">
         <svg
           className="size-6"
           viewBox="0 0 24 24"

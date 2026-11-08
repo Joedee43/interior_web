@@ -24,7 +24,7 @@ function confirmCopy(action: QuoteAction, request: QuoteRequest): { title: strin
 }
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {
-  return <div><dt className="text-ink/50">{label}</dt><dd className="mt-1 font-medium">{children}</dd></div>;
+  return <div><dt className="text-ink-muted">{label}</dt><dd className="mt-1 font-medium">{children}</dd></div>;
 }
 
 export function QuoteDetail({ initialRequest }: { initialRequest: QuoteRequest }) {
@@ -58,7 +58,7 @@ export function QuoteDetail({ initialRequest }: { initialRequest: QuoteRequest }
         <div>
           <QuoteStatusBadge status={request.status} expired={request.expired} />
           <h1 className="mt-4 font-serif text-5xl tracking-tight">{request.company.name}</h1>
-          <p className="mt-3 text-sm text-ink/60">Sent {formatQuoteDate(request.submittedAt)}{request.revision > 0 && ` · Quote revision ${request.revision}`}</p>
+          <p className="mt-3 text-sm text-ink-muted">Sent {formatQuoteDate(request.submittedAt)}{request.revision > 0 && ` · Quote revision ${request.revision}`}</p>
         </div>
         {request.designId && <Button asChild variant="secondary"><Link href={`/designs/${request.designId}`}>View room</Link></Button>}
       </header>
@@ -76,12 +76,12 @@ export function QuoteDetail({ initialRequest }: { initialRequest: QuoteRequest }
                 <li key={line.id} className="flex justify-between gap-4 py-3 text-sm">
                   <div>
                     <span className="font-medium">{line.productName}</span>
-                    <span className="block text-xs text-ink/55">{Object.entries(line.options).map(([name, value]) => `${name}: ${value}`).join(" · ") || "Standard configuration"}{line.sku ? ` · ${line.sku}` : ""} · Qty {line.quantity}</span>
+                    <span className="block text-xs text-ink-muted">{Object.entries(line.options).map(([name, value]) => `${name}: ${value}`).join(" · ") || "Standard configuration"}{line.sku ? ` · ${line.sku}` : ""} · Qty {line.quantity}</span>
                     {line.note && <span className="mt-1 block text-xs italic text-ink/65">Maker: {line.note}</span>}
                   </div>
                   <div className="text-right">
                     {line.quotedUnitPriceMinor !== null && <span className="block font-medium">{formatMoney(line.quotedUnitPriceMinor * line.quantity, request.currency)}</span>}
-                    <span className={`block ${line.quotedUnitPriceMinor !== null ? "text-xs text-ink/45 line-through" : ""}`}>{formatMoney(line.listUnitPriceMinor * line.quantity, request.currency)}</span>
+                    <span className={`block ${line.quotedUnitPriceMinor !== null ? "text-xs text-ink-muted line-through" : ""}`}>{formatMoney(line.listUnitPriceMinor * line.quantity, request.currency)}</span>
                   </div>
                 </li>
               ))}
@@ -92,7 +92,7 @@ export function QuoteDetail({ initialRequest }: { initialRequest: QuoteRequest }
               </ul>
             )}
             <dl className="mt-2 space-y-2 border-t border-ink/10 pt-4 text-sm">
-              <div className="flex justify-between"><dt className="text-ink/60">List estimate</dt><dd>{formatMoney(request.listTotalMinor, request.currency)}</dd></div>
+              <div className="flex justify-between"><dt className="text-ink-muted">List estimate</dt><dd>{formatMoney(request.listTotalMinor, request.currency)}</dd></div>
               {quoted && <div className="flex justify-between text-base"><dt className="font-medium">Quoted total</dt><dd className="font-semibold">{formatMoney(request.quotedTotalMinor!, request.currency)}</dd></div>}
             </dl>
           </section>

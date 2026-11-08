@@ -52,4 +52,21 @@ describe("EditableFloorPlan", () => {
     expect(onMove).toHaveBeenNthCalledWith(1, item.id, expect.closeTo(1450, 5), expect.closeTo(1300, 5), false);
     expect(onMove).toHaveBeenNthCalledWith(2, item.id, expect.closeTo(1450, 5), expect.closeTo(1300, 5), true);
   });
+
+  it("is operable from the keyboard: Enter selects, arrows nudge and save", () => {
+    const { onSelect, onMove, piece } = renderPlan();
+    expect(piece).toHaveAttribute("tabindex", "0");
+    expect(piece).toHaveAccessibleName("Chair, 1000 millimetres from the west wall, 1000 from the north wall");
+
+    fireEvent.keyDown(piece, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledWith(item.id);
+
+    fireEvent.keyDown(piece, { key: "ArrowRight" });
+    fireEvent.keyDown(piece, { key: "ArrowDown", shiftKey: true });
+    expect(onMove).toHaveBeenNthCalledWith(1, item.id, 1010, 1000, true);
+    expect(onMove).toHaveBeenNthCalledWith(2, item.id, 1000, 1100, true);
+
+    fireEvent.keyDown(piece, { key: "a" });
+    expect(onMove).toHaveBeenCalledTimes(2);
+  });
 });

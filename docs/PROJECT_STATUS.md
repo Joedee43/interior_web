@@ -1,9 +1,68 @@
 # Project status — interior_web
 
-**Updated:** 2026-11-08 · **Branch:** `main` (Phase 8 merged locally, not pushed yet; Phase 9 is
+**Updated:** 2026-11-08 · **Branch:** `main` (Phases 8–9 committed, not pushed yet; Phase 10 is
 uncommitted work awaiting review and "merge") · **Backend contract:** `/v1`, OpenAPI 1.0.0
 
-## Phase 9: customer quote management (built 2026-11-08, awaiting merge)
+## Phase 10: accessibility, performance and production hardening (built 2026-11-08, awaiting merge)
+
+- **Contrast:**
+  - secondary text uses a solid `--ink-muted` (#66625c), never `text-ink/NN` opacity. It
+    measures 5.47:1 on canvas and at least 4.67:1 on canvas-deep and the tinted panels;
+  - 87 uses were replaced in 29 files. Decorative `aria-hidden` dots and disabled options
+    keep their faint styling;
+  - `--terracotta` darkened from #a94f35 to #97442d (at least 4.68:1 everywhere);
+  - the moss-panel label went to `text-canvas/75`.
+- **axe** (`@axe-core/playwright` 4.14.0, dev-only): `tests/e2e/accessibility.spec.ts` scans 13
+  pages, signed out and signed in, on desktop and mobile, against WCAG 2.1 A/AA. The scans
+  found, and I fixed:
+  - the header logo link's name/visible-text mismatch;
+  - the mobile "Rooms" label, now "Designs";
+  - `aria-label` on role-less `<div>`s: loading placeholders are now `role="status"`, and the 3D
+    canvases are `role="img"`;
+  - the contrast issues above.
+
+  Zero violations remain.
+- **Keyboard in the 2D plan:** furniture is focusable (`role="button"`, `aria-pressed`, name with
+  position). Enter/Space selects; the arrow keys move 10 mm (100 mm with Shift) through the
+  normal clamped, saved `onMove` path. The keys are described for screen readers through
+  `aria-describedby`.
+- **3D:**
+  - `tests/e2e/performance.spec.ts` checks `window.__THREE__`: three.js never loads on home,
+    catalog, account, designs or quotes, and on phones a product page loads it only after
+    "3D view";
+  - `shadows="percentage"` removed the PCFSoftShadowMap warning;
+  - `useGLTF(url, false)` stops drei fetching a Draco decoder from Google's CDN;
+  - the `THREE.Clock` warning comes from inside React Three Fiber and needs a library upgrade.
+- **Errors:** `src/app/global-error.tsx` (own `<html>`/`<body>` and styles, `retry()`) covers
+  crashes in the root layout.
+- **Headers** (`next.config.ts`, pages only, so `/v1` keeps Go's headers):
+  - a CSP without nonces: the bundled Next guide says nonces are incompatible with Partial
+    Prerendering;
+  - `img-src` and `connect-src` allow `blob:`/`data:` for textures embedded in GLBs;
+  - `frame-ancestors 'none'`, nosniff, Referrer-Policy and Permissions-Policy;
+  - HSTS comes from Caddy in production.
+
+  `tests/e2e/security-headers.spec.ts` checks the headers, and the whole suite runs with the CSP
+  active.
+- **CI:** a new `contract` job checks out the public `Joedee43/interior_api` and runs
+  `npm run api:check`.
+- **Deployment:** see `interior_api/docs/DEPLOYMENT.md`. Build with the production env loaded,
+  because the `/v1` rewrite target and `NEXT_PUBLIC_*` values are fixed at build time.
+
+Verification on 2026-11-08:
+- lint (0 warnings), typecheck, and Vitest (249 tests, 56 files) pass;
+- Playwright: 130 passed and 6 intentional platform skips, with the CSP active and no CSP
+  violations logged;
+- `npm run build` passes and `npm run api:check` matches.
+
+Mutation checks (each failed as expected, then I restored the file):
+- an eager three.js import on the product page makes the mobile performance test fail;
+- a `text-ink/50` on `/quotes` makes axe fail at 3.31:1.
+
+`npm audit --omit=dev`: 0 vulnerabilities. There are 8 moderate ones in the lint toolchain
+(minimatch via eslint-config-next); they existed before this phase and aren't shipped to users.
+
+## Phase 9: customer quote management (committed 2026-11-08)
 
 - `/quotes`: protected, noindex list of the customer's requests, newest first. It has a
   single-status filter kept in the URL (`?status=quoted`), "Load more" with the opaque cursor
@@ -27,9 +86,9 @@ uncommitted work awaiting review and "merge") · **Backend contract:** `/v1`, Op
   also broke Phase 8's real submission success screen. The same fix makes Go always send
   `is_primary`, `materials` and `variants` on media.
 
-Verification on 2026-11-08: lint (0 warnings), typecheck, and Vitest (248 tests, 56 files) pass.
-I mutation-checked the expiry rule. **Not run yet:** Playwright (`tests/e2e/quote-management.spec.ts`
-is written), `npm run build`, `npm run api:check`, and a manual run against the real Go API.
+Verification on 2026-11-08: lint, typecheck, Vitest, the full Playwright suite (after fixing two
+strict-mode selectors in the new spec) and `npm run build` pass. I mutation-checked the expiry
+rule. **A manual run against the real Go API is still outstanding.**
 
 ## Fixes after Phase 8 (2026-11-08)
 
@@ -88,8 +147,8 @@ Verification completed on 2026-11-06:
 6. Design creation/list/read-only room rendering (Complete on `main`).
 7. Interactive editor and auto-save (Complete on `main`).
 8. Estimates and quote submission (Complete on `main`).
-9. Customer quote management (Built, awaiting review and merge).
-10. Accessibility, performance and production hardening.
+9. Customer quote management (Complete on `main`).
+10. Accessibility, performance and production hardening (Built, awaiting review and merge).
 
 Each phase is separately approved, implemented and merged. Seller/admin UI,
 collision detection, snapping, undo/redo, payments and orders remain deferred.

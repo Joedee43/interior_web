@@ -39,7 +39,7 @@ export function CatalogFilters({ categories, params }: CatalogFiltersProps) {
               name="q"
               defaultValue={params.q ?? ""}
               placeholder="Search by furniture name..."
-              className="h-11 w-full rounded-xl border border-ink/15 bg-canvas px-4 text-sm text-ink placeholder:text-ink/40 focus:border-terracotta focus:outline-none focus:ring-1 focus:ring-terracotta"
+              className="h-11 w-full rounded-xl border border-ink/15 bg-canvas px-4 text-sm text-ink placeholder:text-ink-muted focus:border-terracotta focus:outline-none focus:ring-1 focus:ring-terracotta"
             />
           </div>
         </div>
